@@ -20,7 +20,12 @@ export default function HomeScreen({
   isDesktop = false,
   onToggleDesktop,
 }: HomeScreenProps) {
-  const [playerName, setPlayerName] = useState('Vos');
+  const [playerName, setPlayerName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('truco-player-name') || 'Vos';
+    }
+    return 'Vos';
+  });
   const [setupModal, setSetupModal] = useState<{
     open: boolean;
     mode: 'bot' | 'local';
@@ -127,7 +132,12 @@ export default function HomeScreen({
           id="homeNameInput"
           type="text"
           value={playerName}
-          onChange={e => setPlayerName(e.target.value)}
+          onChange={e => {
+            setPlayerName(e.target.value);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('truco-player-name', e.target.value);
+            }
+          }}
           maxLength={18}
           placeholder="Escribí tu apodo"
         />

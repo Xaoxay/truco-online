@@ -33,6 +33,7 @@ function MainApp() {
   const [peerName, setPeerName] = useState<string | null>(null);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [initialRoomCode, setInitialRoomCode] = useState('');
+  const [pendingRoundData, setPendingRoundData] = useState<any>(null);
   const [desktopLayout, setDesktopLayout] = useState(() => {
     return typeof window !== 'undefined' && window.innerWidth >= 768;
   });
@@ -62,12 +63,12 @@ function MainApp() {
 
   // ─── Host Creates Online Room ──────────────────────────────────
   const handleCreateOnlineRoom = (hostPlayerName: string) => {
-    // Generate clean 5-char code, e.g. TRU74
     const randomSuffix = Math.floor(100 + Math.random() * 900);
     const code = `TRU${randomSuffix}`;
     setRoomCode(code);
     setIsHost(true);
     setPeerName(null);
+    setPendingRoundData(null);
 
     const net = new TrucoNetwork({
       onStatusChange: (status, info) => {
@@ -77,6 +78,10 @@ function MainApp() {
       onMessage: (msg: NetworkMessage) => {
         if (msg.type === 'JOIN') {
           setPeerName(msg.playerName);
+          setConfig(prev => ({
+            ...prev,
+            opponentName: msg.playerName,
+          }));
           net.sendMessage({
             type: 'JOIN_ACK',
             hostName: hostPlayerName,
@@ -105,6 +110,7 @@ function MainApp() {
     setRoomCode(codeToJoin);
     setIsHost(false);
     setJoinModalOpen(false);
+    setPendingRoundData(null);
 
     const net = new TrucoNetwork({
       onStatusChange: (status, info) => {
@@ -121,7 +127,8 @@ function MainApp() {
             opponentName: msg.hostName,
           }));
         } else if (msg.type === 'START_ROUND') {
-          // Host has started the game!
+          // El Anfitrión inició la partida: guardar las cartas recibidas y entrar al juego
+          setPendingRoundData(msg);
           setView('game');
         }
       },
@@ -155,6 +162,7 @@ function MainApp() {
   const handleStartGame = (newConfig: RoomConfig) => {
     networkRef.current?.destroy();
     networkRef.current = null;
+    setPendingRoundData(null);
     setConfig(newConfig);
     setView('game');
   };
@@ -162,6 +170,7 @@ function MainApp() {
   const handleCancelOnline = () => {
     networkRef.current?.destroy();
     networkRef.current = null;
+    setPendingRoundData(null);
     setView('home');
   };
 
@@ -185,6 +194,8 @@ function MainApp() {
           networkStatus={networkStatus}
           statusInfo={networkStatusInfo}
           peerName={peerName}
+          playerName={config.playerName}
+          opponentName={config.opponentName}
           goal={config.goal}
           withFlor={config.withFlor}
           matchType={config.matchType || '1v1'}
@@ -202,9 +213,11 @@ function MainApp() {
           network={networkRef.current}
           isDesktop={desktopLayout}
           onToggleLayout={toggleDesktop}
+          initialRoundData={pendingRoundData}
           onExit={() => {
             networkRef.current?.destroy();
             networkRef.current = null;
+            setPendingRoundData(null);
             setView('home');
           }}
         />

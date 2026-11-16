@@ -11,12 +11,19 @@ interface JoinModalProps {
 
 export default function JoinModal({ open, onClose, onJoin, initialCode = '' }: JoinModalProps) {
   const [code, setCode] = useState(initialCode);
-  const [name, setName] = useState('Jugador');
+  const [name, setName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('truco-player-name') || 'Jugador';
+    }
+    return 'Jugador';
+  });
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       if (initialCode) setCode(initialCode.toUpperCase());
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('truco-player-name') : null;
+      if (saved) setName(saved);
       // Auto-focus input on mobile so native keyboard opens cleanly
       setTimeout(() => inputRef.current?.focus(), 150);
     }
@@ -50,9 +57,13 @@ export default function JoinModal({ open, onClose, onJoin, initialCode = '' }: J
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const cleanName = name.trim() || 'Jugador';
     if (cleanCode.length >= 3) {
       soundButton();
-      onJoin(cleanCode, name.trim() || 'Jugador');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('truco-player-name', cleanName);
+      }
+      onJoin(cleanCode, cleanName);
     }
   };
 

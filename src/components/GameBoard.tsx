@@ -47,6 +47,7 @@ interface GameBoardProps {
   onExit: () => void;
   isDesktop?: boolean;
   onToggleLayout?: () => void;
+  initialRoundData?: any;
 }
 
 interface PlayedSlot {
@@ -55,7 +56,7 @@ interface PlayedSlot {
   winner: PlayerId | 'tie' | null;
 }
 
-export default function GameBoard({ config, network, onExit, isDesktop = false, onToggleLayout }: GameBoardProps) {
+export default function GameBoard({ config, network, onExit, isDesktop = false, onToggleLayout, initialRoundData }: GameBoardProps) {
   const matchType = config.matchType || '1v1';
   const isMulti = matchType === '2v2' || matchType === '3v3';
 
@@ -407,11 +408,29 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       return;
     }
     if (config.mode === 'online' && network && !network.isHost) {
-      // Guest waits for START_ROUND from host
+      if (initialRoundData && initialRoundData.hand && initialRoundData.hand.length > 0) {
+        setPlayerHand(initialRoundData.hand);
+        setOppCardsCount(initialRoundData.oppHandCount || 3);
+        setMano(initialRoundData.mano || 'player');
+        setTurn(initialRoundData.mano || 'player');
+        setCurrentTrick(0);
+        setTricks([
+          { playerCard: null, oppCard: null, winner: null },
+          { playerCard: null, oppCard: null, winner: null },
+          { playerCard: null, oppCard: null, winner: null },
+        ]);
+        setPendingCall(null);
+        setTrucoLevel('none');
+        setTrucoCaller(null);
+        setEnvidoPlayed(false);
+        setFirstCardPlayed(false);
+      }
+      // Avisar al anfitrión que el invitado ya montó el tablero
+      network.sendMessage({ type: 'GUEST_READY' as any });
       return;
     }
     startNewRound('player');
-  }, []);
+  }, [initialRoundData]);
 
   // ─── Network Message Listener ──────────────────────────────────
   useEffect(() => {
@@ -456,6 +475,17 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         setTimeout(() => setOppGesture(null), 2500);
       } else if (msg.type === 'CHAT') {
         showSpeech(msg.text);
+      } else if (msg.type === 'GUEST_READY') {
+        if (config.mode === 'online' && network && network.isHost && oppHandCards.length > 0) {
+          network.sendMessage({
+            type: 'START_ROUND',
+            hand: oppHandCards,
+            oppHandCount: playerHand.length,
+            mano: mano,
+            roundNum: 1,
+            hostName: config.playerName,
+          } as any);
+        }
       } else if (msg.type === 'REVANCHE') {
         setScorePlayer(0);
         setScoreOpp(0);
@@ -1119,6 +1149,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             </div>
           )}
 
+          {/* Identificación del Jugador con su Nombre y Turno visible en la mesa */}
+          <div className="player-badge-container">
+            <div className={`player-badge ${(isMulti ? currentTurnSeat === 0 : turn === 'player') ? 'player-turn-active' : ''}`} aria-label={`Jugador: ${config.playerName}`}>
+              <span className="player-avatar">🤠</span>
+              <span className="player-name">{config.playerName || 'Vos'}</span>
+              {(isMulti ? currentTurnSeat === 0 : turn === 'player') && <span className="turn-indicator-pulse" title="Es tu turno de jugar"></span>}
+            </div>
+          </div>
+
           {/* Callouts Bar */}
           <div className="player-callouts-bar">
             {pendingCall && pendingCall.caller === 'opponent' ? (
@@ -1190,6 +1229,32 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
               </>
             )}
           </div>
+
+          {/* Botones de acción directa para Tirar Carta (no depende exclusivamente de tocar el naipe) */}
+          {(isMulti ? currentTurnSeat === 0 && pendingCall === null : turn === 'player' && pendingCall === null) && playerHand.length > 0 && (
+            <div className="quick-throw-cards-bar" role="toolbar" aria-label="Tirar Carta">
+              <span className="quick-throw-title">Tirar:</span>
+              {playerHand.map((c, idx) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="btn-callout btn-throw-chip"
+                  onClick={() => handlePlayCard(idx)}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handlePlayCard(idx);
+                  }}
+                  title={`Tirar ${c.label}`}
+                >
+                  <span className="throw-chip-suit">
+                    {c.suit === 'espada' ? '⚔️' : c.suit === 'basto' ? '🌿' : c.suit === 'oro' ? '🪙' : '🏆'}
+                  </span>
+                  <span className="throw-chip-num">{c.num}</span>
+                  {isDesktop && <kbd className="btn-kbd">{idx + 1}</kbd>}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Manos del Jugador sosteniendo las cartas en abanico */}
           <PlayerHandsHoldingCards

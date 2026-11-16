@@ -13,6 +13,15 @@ interface PlayerHandsProps {
 export function PlayerHandsHoldingCards({ cards, onPlayCard, canPlay, isDesktop }: PlayerHandsProps) {
   const count = cards.length;
 
+  const handlePlay = (idx: number, e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!canPlay) return;
+    onPlayCard(idx);
+  };
+
   return (
     <div className="player-hands-holder" role="region" aria-label="Tus cartas en mano">
       {/* Tapete de apoyo para las cartas del jugador */}
@@ -44,11 +53,13 @@ export function PlayerHandsHoldingCards({ cards, onPlayCard, canPlay, isDesktop 
                 transform: `translateX(${translateX}px) translateY(${translateY}px) rotate(${rot}deg)`,
                 zIndex: idx + 2,
               }}
+              onClick={(e) => handlePlay(idx, e)}
+              onTouchEnd={(e) => handlePlay(idx, e)}
             >
               {isDesktop && <div className="card-key-badge">[{idx + 1}]</div>}
               <CardFace
                 card={card}
-                onClick={() => canPlay && onPlayCard(idx)}
+                onClick={() => handlePlay(idx)}
                 disabled={!canPlay}
                 className="held-in-hand-card"
               />

@@ -460,6 +460,103 @@ body {
   color: #fff;
 }
 
+.player-badge-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.player-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 11, 6, 0.9);
+  border: 1.5px solid rgba(244, 196, 48, 0.4);
+  padding: 3px 12px;
+  border-radius: 100px;
+  position: relative;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+  transition: all 0.2s ease;
+}
+
+.player-badge.player-turn-active {
+  border-color: #2ecc71;
+  background: rgba(14, 38, 22, 0.92);
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.45), 0 3px 8px rgba(0,0,0,0.6);
+}
+
+.player-avatar {
+  font-size: 15px;
+}
+
+.player-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold-light);
+  letter-spacing: 0.3px;
+}
+
+/* Quick Throw Cards Bar (Tirar Carta directa para celular y PC) */
+.quick-throw-cards-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 2px 0 6px 0;
+  width: 100%;
+  max-width: 360px;
+  z-index: 15;
+}
+
+.quick-throw-title {
+  font-size: 10.5px;
+  font-weight: 900;
+  color: var(--gold-light);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(244, 196, 48, 0.35);
+  white-space: nowrap;
+}
+
+.btn-throw-chip {
+  background: linear-gradient(180deg, #442111 0%, #241007 100%) !important;
+  border: 1.5px solid var(--gold) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  padding: 3px 10px !important;
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.btn-throw-chip:active {
+  transform: scale(0.95);
+  background: #5a2e17 !important;
+}
+
+.throw-chip-suit {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.throw-chip-num {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--gold-light);
+  line-height: 1;
+}
+
 .turn-indicator-pulse {
   width: 8px;
   height: 8px;
@@ -1090,6 +1187,14 @@ body {
   transform: translateY(-24px) scale(1.08) !important;
   z-index: 25 !important;
   filter: drop-shadow(0 14px 22px rgba(244, 196, 48, 0.45));
+}
+
+@media (hover: none) {
+  .fan-card-wrapper.can-play:hover,
+  .fan-card-wrapper.can-play:active {
+    transform: none !important;
+    filter: drop-shadow(0 6px 14px rgba(244, 196, 48, 0.7));
+  }
 }
 
 .fan-card-wrapper.wait-turn {

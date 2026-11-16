@@ -10,6 +10,8 @@ interface OnlineLobbyProps {
   networkStatus: NetworkStatus;
   statusInfo: string;
   peerName: string | null;
+  playerName?: string;
+  opponentName?: string;
   goal: 15 | 30;
   withFlor: boolean;
   matchType?: MatchType;
@@ -26,6 +28,8 @@ export default function OnlineLobby({
   networkStatus,
   statusInfo,
   peerName,
+  playerName = 'Vos',
+  opponentName,
   goal,
   withFlor,
   matchType = '1v1',
@@ -70,6 +74,8 @@ export default function OnlineLobby({
 
   // Render slots for the chosen format
   const renderSlots = () => {
+    const oppDisplayName = peerName || opponentName;
+
     if (matchType === '1v1') {
       return (
         <div className="lobby-slots">
@@ -77,7 +83,7 @@ export default function OnlineLobby({
             <div className="slot-left">
               <div className="slot-avatar">🤠</div>
               <div>
-                <div className="slot-name">{isHost ? 'Vos (Anfitrión)' : 'Vos'}</div>
+                <div className="slot-name">{playerName} {isHost ? '(Anfitrión)' : '(Vos)'}</div>
                 <div className="slot-tag">Mano • Nosotros</div>
               </div>
             </div>
@@ -86,20 +92,20 @@ export default function OnlineLobby({
 
           <div className="slot-player">
             <div className="slot-left">
-              <div className="slot-avatar" style={{ borderColor: peerName ? 'var(--gold)' : '#555' }}>
-                {peerName ? '😎' : fillBots ? '🤖' : '⏳'}
+              <div className="slot-avatar" style={{ borderColor: oppDisplayName ? 'var(--gold)' : '#555' }}>
+                {oppDisplayName ? '😎' : fillBots ? '🤖' : '⏳'}
               </div>
               <div>
                 <div className="slot-name">
-                  {peerName ? peerName : fillBots ? 'Don Florencio (Bot)' : 'Esperando a tu amigo...'}
+                  {oppDisplayName ? oppDisplayName : fillBots ? 'Don Florencio (Bot)' : 'Esperando a tu amigo...'}
                 </div>
-                <div className="slot-tag" style={{ color: peerName ? 'var(--gold-light)' : '#888' }}>
-                  {peerName ? 'Listo para jugar' : fillBots ? 'Bot de Reemplazo' : 'Pie • Ellos'}
+                <div className="slot-tag" style={{ color: oppDisplayName ? 'var(--gold-light)' : '#888' }}>
+                  {oppDisplayName ? 'Listo para jugar' : fillBots ? 'Bot de Reemplazo' : 'Pie • Ellos'}
                 </div>
               </div>
             </div>
-            <div className={`slot-status ${peerName || fillBots ? 'ready' : 'waiting'}`}>
-              {peerName ? 'En la mesa' : fillBots ? 'Listo (Bot)' : 'Esperando...'}
+            <div className={`slot-status ${oppDisplayName || fillBots ? 'ready' : 'waiting'}`}>
+              {oppDisplayName ? 'En la mesa' : fillBots ? 'Listo (Bot)' : 'Esperando...'}
             </div>
           </div>
         </div>
@@ -113,7 +119,7 @@ export default function OnlineLobby({
             <div className="slot-left">
               <div className="slot-avatar">🤠</div>
               <div>
-                <div className="slot-name">{isHost ? 'Vos (Anfitrión)' : 'Vos'}</div>
+                <div className="slot-name">{playerName} {isHost ? '(Anfitrión)' : '(Vos)'}</div>
                 <div className="slot-tag" style={{ color: '#2563eb' }}>Equipo 1: Nosotros</div>
               </div>
             </div>
@@ -122,12 +128,12 @@ export default function OnlineLobby({
 
           <div className="slot-player">
             <div className="slot-left">
-              <div className="slot-avatar" style={{ borderColor: peerName ? 'var(--gold)' : '#555' }}>
-                {peerName ? '😎' : '🤖'}
+              <div className="slot-avatar" style={{ borderColor: oppDisplayName ? 'var(--gold)' : '#555' }}>
+                {oppDisplayName ? '😎' : '🤖'}
               </div>
               <div>
                 <div className="slot-name">
-                  {peerName ? peerName : 'Don Florencio (Bot)'}
+                  {oppDisplayName ? oppDisplayName : 'Don Florencio (Bot)'}
                 </div>
                 <div className="slot-tag" style={{ color: '#dc2626' }}>
                   Equipo 2: Rival 1
@@ -135,7 +141,7 @@ export default function OnlineLobby({
               </div>
             </div>
             <div className="slot-status ready">
-              {peerName ? 'En la mesa' : 'Listo (Bot)'}
+              {oppDisplayName ? 'En la mesa' : 'Listo (Bot)'}
             </div>
           </div>
 
@@ -171,7 +177,7 @@ export default function OnlineLobby({
           <div className="slot-left">
             <div className="slot-avatar">🤠</div>
             <div>
-              <div className="slot-name">{isHost ? 'Vos (Anfitrión)' : 'Vos'}</div>
+              <div className="slot-name">{playerName} {isHost ? '(Anfitrión)' : '(Vos)'}</div>
               <div className="slot-tag" style={{ color: '#2563eb' }}>Equipo 1: Nosotros (Mano)</div>
             </div>
           </div>
@@ -180,13 +186,13 @@ export default function OnlineLobby({
 
         <div className="slot-player">
           <div className="slot-left">
-            <div className="slot-avatar">{peerName ? '😎' : '🤖'}</div>
+            <div className="slot-avatar">{oppDisplayName ? '😎' : '🤖'}</div>
             <div>
-              <div className="slot-name">{peerName ? peerName : 'Don Florencio (Bot)'}</div>
+              <div className="slot-name">{oppDisplayName ? oppDisplayName : 'Don Florencio (Bot)'}</div>
               <div className="slot-tag" style={{ color: '#dc2626' }}>Equipo 2: Rival 1</div>
             </div>
           </div>
-          <div className="slot-status ready">{peerName ? 'En la mesa' : 'Listo (Bot)'}</div>
+          <div className="slot-status ready">{oppDisplayName ? 'En la mesa' : 'Listo (Bot)'}</div>
         </div>
 
         <div className="slot-player">
