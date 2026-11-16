@@ -1,5 +1,5 @@
 // ─── Home Screen Component with Room Management ────────────────
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { RoomConfig, MatchType } from '../engine/types';
 import { soundButton } from '../engine/audio';
 
@@ -30,6 +30,35 @@ export default function HomeScreen({
   const [selectedFormat, setSelectedFormat] = useState<MatchType>('1v1');
   const [selectedGoal, setSelectedGoal] = useState<15 | 30>(15);
   const [withFlor, setWithFlor] = useState(false);
+
+  // PWA Web App Install state
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsStandalone(Boolean(isPWA));
+    }
+
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    soundButton();
+    if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.then(() => setInstallPrompt(null));
+    } else {
+      setShowIosGuide(true);
+    }
+  };
 
   const handleLaunchGame = () => {
     soundButton();
@@ -193,6 +222,18 @@ export default function HomeScreen({
           </div>
           <span className="menu-arrow">➔</span>
         </button>
+
+        {/* PWA / Web App Install */}
+        {!isStandalone && (
+          <button className="menu-btn pwa-install-btn" onClick={handleInstallClick}>
+            <div className="menu-icon">📲</div>
+            <div className="menu-text">
+              <strong>Instalar como App en tu Celular</strong>
+              <span>Jugá en pantalla completa como app nativa</span>
+            </div>
+            <span className="menu-arrow">➔</span>
+          </button>
+        )}
       </div>
 
       <div className="home-footer">
@@ -261,6 +302,41 @@ export default function HomeScreen({
               onClick={handleLaunchGame}
             >
               ¡A las Barajas! 🃏
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* iOS Safari Install Guide Modal */}
+      {showIosGuide && (
+        <div className="score-modal-overlay" onClick={() => setShowIosGuide(false)}>
+          <div className="join-modal" onClick={e => e.stopPropagation()}>
+            <div className="score-modal-header">
+              <h3>📲 Instalar como App Web</h3>
+              <button className="btn-close-sheet" onClick={() => setShowIosGuide(false)}>✕</button>
+            </div>
+            <p className="join-desc" style={{ marginBottom: 12 }}>
+              Podés tener Truco Pro instalado en la pantalla de inicio de tu celular como una app nativa:
+            </p>
+            <div style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--wood-border)', marginBottom: 14 }}>
+              <div style={{ marginBottom: 10, fontSize: 13 }}>
+                <b style={{ color: 'var(--gold)' }}>En iPhone (Safari):</b>
+                <div style={{ marginTop: 4, color: '#e5dacb', lineHeight: 1.5 }}>
+                  1. Tocá el botón Compartir <b>⎋</b> abajo al medio.<br />
+                  2. Seleccioná <b>"Agregar al inicio ➕"</b>.<br />
+                  3. Tocá <b>"Agregar"</b> arriba a la derecha.
+                </div>
+              </div>
+              <div style={{ fontSize: 13 }}>
+                <b style={{ color: 'var(--gold)' }}>En Android (Chrome):</b>
+                <div style={{ marginTop: 4, color: '#e5dacb', lineHeight: 1.5 }}>
+                  1. Tocá los tres puntos <b>⋮</b> arriba a la derecha.<br />
+                  2. Seleccioná <b>"Instalar aplicación"</b> o "Agregar a pantalla principal".
+                </div>
+              </div>
+            </div>
+            <button className="btn-primary-action full-width" onClick={() => setShowIosGuide(false)}>
+              ¡Entendido! 👍
             </button>
           </div>
         </div>

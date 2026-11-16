@@ -1,7 +1,15 @@
 {
-  "id": "./", "name": "Truco · Anotador argentino", "short_name": "Truco",
-  "lang": "es-AR", "start_url": "./", "scope": "./", "display": "standalone",
-  "background_color": "#392319", "theme_color": "#392319",
+  "id": "./",
+  "name": "Truco Criollo · Juego y Anotador Argentino",
+  "short_name": "Truco Pro",
+  "description": "Juego de Truco argentino multijugador online y local con naipes criollos",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0603",
+  "theme_color": "#150a05",
   "icons": [
     {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}

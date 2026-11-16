@@ -31,35 +31,30 @@ body {
   background: #0d0603;
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  width: 100%;
+  height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+  margin: 0;
+  padding: 0;
   display: flex;
   justify-content: center;
-  align-items: center;
-  overflow-x: hidden;
+  align-items: stretch;
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* App Viewport Container */
 .app-viewport {
   width: 100%;
-  max-width: 480px;
-  height: 100vh;
+  height: 100%;
   height: 100dvh;
+  min-height: 100dvh;
   background: var(--wood-bg);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 0 50px rgba(0,0,0,0.8);
-}
-
-@media (min-width: 600px) {
-  .app-viewport {
-    height: 92vh;
-    border-radius: 36px;
-    border: 4px solid #3d2315;
-    box-shadow: 0 25px 70px rgba(0,0,0,0.9), 0 0 0 10px #1a0d07;
-  }
 }
 
 /* ========================================================
@@ -473,32 +468,34 @@ body {
 .felt-center {
   position: relative;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 3;
+  padding: 4px 0;
 }
 
 .trick-slots-container {
-  width: 94%;
+  width: 96%;
   max-width: 320px;
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .trick-column {
   flex: 1;
-  height: 180px;
-  background: rgba(0,0,0,0.2);
+  height: 125px;
+  background: rgba(0,0,0,0.22);
   border: 1.5px dashed rgba(255,255,255,0.18);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 5px;
+  padding: 3px 2px;
   position: relative;
 }
 
@@ -506,15 +503,15 @@ body {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: rgba(255,255,255,0.18);
   pointer-events: none;
 }
 
 .trick-slot-opp, .trick-slot-me {
-  width: 58px;
-  height: 86px;
+  width: 48px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -531,25 +528,36 @@ body {
 
 .player-callouts-bar {
   display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 5px;
+  margin-bottom: 6px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   max-width: 100%;
-  padding: 2px 8px;
+  padding: 2px 4px;
+  scrollbar-width: none;
+  justify-content: center;
+}
+.player-callouts-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .btn-callout {
-  background: rgba(18, 10, 6, 0.88);
+  background: rgba(18, 10, 6, 0.92);
   border: 1.5px solid #6b4324;
   color: var(--gold-light);
   border-radius: 100px;
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 5px 11px;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5);
   transition: transform 0.1s;
+  min-height: 34px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .btn-callout:active {
@@ -586,66 +594,224 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 10px;
-  height: 118px;
-  padding: 0 6px;
+  gap: 8px;
+  height: 114px;
+  padding: 0 4px;
+  width: 100%;
 }
 
-/* Truco Card Styling */
-.truco-card {
-  background: var(--card-bg);
-  border: 2px solid #553e26;
-  border-radius: 9px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+.player-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ========================================================
+   NAIPES ESPAÑOLES TRADICIONALES ARGENTINOS (VECTORIALES)
+   ======================================================== */
+.truco-card-argentina {
   position: relative;
+  width: 74px;
+  height: 112px;
+  min-height: unset !important;
+  background: #fffdf8;
+  border-radius: 9px;
+  border: 1.5px solid #2b1810;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 4px;
+  padding: 4px 5px;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  touch-action: manipulation;
+  overflow: hidden;
+  transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.16s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.truco-card:hover:not(.disabled) {
-  transform: translateY(-12px) scale(1.05);
+/* Small card version (used on table slots, opponent cards, multi-seats) */
+.truco-card-argentina.small-card {
+  width: 44px;
+  height: 64px;
+  min-height: unset !important;
+  padding: 2px 3px;
+  border-radius: 6px;
+  border-width: 1.2px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+
+.truco-card-argentina:hover:not(:disabled) {
+  transform: translateY(-8px) scale(1.04);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.7);
   border-color: var(--gold);
-  box-shadow: 0 16px 28px rgba(0,0,0,0.7);
 }
 
-.truco-card:active:not(.disabled) {
-  transform: translateY(-6px);
+.truco-card-argentina:active:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
 }
 
-.truco-card.disabled {
+.truco-card-argentina.disabled,
+.truco-card-argentina:disabled {
   opacity: 0.65;
   cursor: default;
+  filter: grayscale(0.25);
 }
 
-.card-corner {
+/* Resplandor dorado para cartas bravas (Macho, Hembra, Sietes bravos) */
+.truco-card-argentina.carta-brava {
+  border-color: #d97706;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+/* SVG del Marco y la Pinta (se posiciona como fondo de la carta) */
+.card-border-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Índices (Número y Pip en las esquinas) */
+.card-indice {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   line-height: 1;
+  pointer-events: none;
 }
 
-.card-num {
+.card-indice.top-left {
+  align-self: flex-start;
+}
+
+.card-indice.bottom-right {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.indice-num {
   font-family: Georgia, serif;
+  font-size: 15px;
   font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.5px;
 }
 
-.card-center {
-  flex: 1;
+.small-card .indice-num {
+  font-size: 10px;
+}
+
+.indice-pip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+/* Ilustración Central del Naipe */
+.card-center-illustration {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ancho-macho-center,
+.siete-bravo-center,
+.normal-card-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.macho-laurel {
+  font-size: 10px;
+  margin-bottom: -2px;
+}
+
+.ancho-title {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: #1e3a5f;
+  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 0.5px solid rgba(0, 0, 0, 0.15);
+}
+
+.ancho-title.hembra {
+  color: #15803d;
+}
+
+.ancho-title.siete {
+  color: #b45309;
+}
+
+.figura-naipe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.figura-badge {
+  font-size: 7px;
+  font-weight: 800;
+  background: #fef3c7;
+  color: #78350f;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 0.5px solid #d97706;
+}
+
+/* Dorso de Cartas Criollo (Guarda Pampa con Sol de Mayo) */
+.card-back-argentina {
+  position: relative;
+  width: 50px;
+  height: 74px;
+  border-radius: 7px;
+  border: 1.5px solid #f4c430;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  background: #2a0b08;
+  overflow: hidden;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.card-back {
-  background: #7a1c18;
-  border: 2px solid #edd5a6;
-  border-radius: 6px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-  background-image: repeating-linear-gradient(45deg, #8f231e 0, #8f231e 5px, #701612 5px, #701612 10px);
+.card-back-argentina.small-back {
+  width: 42px;
+  height: 60px;
+  border-radius: 5px;
+  border-width: 1px;
+}
+
+.back-inner-frame {
+  position: absolute;
+  inset: 2px;
+  border: 1px dashed rgba(244, 196, 48, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.guarda-pampa-pattern {
+  width: 100%;
+  height: 100%;
 }
 
 /* Señas Drawer */
@@ -858,57 +1024,71 @@ body {
   width: 140px;
 }
 
-.join-code-display {
+/* Native Phone Keyboard Input for Room Code */
+.join-code-input-container {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 12px 0 16px;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0 16px;
+  width: 100%;
 }
 
-.pin-digit {
-  width: 44px;
-  height: 52px;
-  background: #110703;
-  border: 2px solid rgba(255,255,255,0.2);
-  border-radius: 10px;
+.join-code-input-container label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold-light);
+}
+
+.join-code-field-wrap {
   display: flex;
+  gap: 8px;
   align-items: center;
-  justify-content: center;
+  width: 100%;
+}
+
+.input-native-room-code {
+  flex: 1;
+  background: #110703;
+  border: 2px solid var(--gold-dark);
+  border-radius: 12px;
+  padding: 12px 14px;
   font-family: Georgia, serif;
   font-size: 24px;
   font-weight: 900;
-  color: #aaa;
+  letter-spacing: 4px;
+  color: var(--gold-light);
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  -webkit-appearance: none;
 }
 
-.pin-digit.filled {
+.input-native-room-code:focus {
   border-color: var(--gold);
-  color: #fff;
-  box-shadow: 0 0 12px rgba(244, 196, 48, 0.3);
+  box-shadow: 0 0 16px rgba(244, 196, 48, 0.4);
 }
 
-.join-keypad {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-}
-
-.btn-keypad {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
-  padding: 10px 0;
-  font-size: 16px;
+.btn-paste-code {
+  background: rgba(244, 196, 48, 0.15);
+  border: 1.5px solid var(--gold);
+  color: var(--gold-light);
+  border-radius: 12px;
+  padding: 0 14px;
+  height: 54px;
+  font-size: 13px;
   font-weight: 800;
-  color: #fff;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
-.btn-keypad:active {
-  background: rgba(244, 196, 48, 0.25);
-}
-
-.key-action {
-  color: var(--gold);
+.btn-paste-code:active {
+  background: var(--gold);
+  color: #000;
 }
 
 .btn-primary-action {

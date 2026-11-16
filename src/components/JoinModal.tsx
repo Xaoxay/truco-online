@@ -1,5 +1,5 @@
-// ─── Join Room Modal with PIN Input ──────────────────────────────
-import React, { useState } from 'react';
+// ─── Join Room Modal with Native Phone Keyboard ───────────────────
+import React, { useState, useEffect, useRef } from 'react';
 import { soundButton } from '../engine/audio';
 
 interface JoinModalProps {
@@ -12,26 +12,47 @@ interface JoinModalProps {
 export default function JoinModal({ open, onClose, onJoin, initialCode = '' }: JoinModalProps) {
   const [code, setCode] = useState(initialCode);
   const [name, setName] = useState('Jugador');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      if (initialCode) setCode(initialCode.toUpperCase());
+      // Auto-focus input on mobile so native keyboard opens cleanly
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }
+  }, [open, initialCode]);
 
   if (!open) return null;
 
-  const handleKey = (ch: string) => {
+  const handlePasteCode = async () => {
     soundButton();
-    if (code.length < 6) {
-      setCode(prev => (prev + ch).toUpperCase());
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        // If it's a URL like https://...?room=TRU74, extract param
+        const match = text.match(/[?&]room=([A-Z0-9]+)/i);
+        if (match && match[1]) {
+          setCode(match[1].toUpperCase());
+        } else {
+          setCode(text.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8));
+        }
+      }
+    } catch {
+      // Fallback: prompt
+      const manual = prompt('Pegá acá el código o link de la sala:');
+      if (manual) {
+        const match = manual.match(/[?&]room=([A-Z0-9]+)/i);
+        setCode(match ? match[1].toUpperCase() : manual.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8));
+      }
     }
-  };
-
-  const handleBackspace = () => {
-    soundButton();
-    setCode(prev => prev.slice(0, -1));
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (code.trim().length >= 3) {
+    const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (cleanCode.length >= 3) {
       soundButton();
-      onJoin(code.trim().toUpperCase(), name.trim() || 'Jugador');
+      onJoin(cleanCode, name.trim() || 'Jugador');
     }
   };
 
@@ -44,56 +65,62 @@ export default function JoinModal({ open, onClose, onJoin, initialCode = '' }: J
         </div>
 
         <p className="join-desc">
-          Ingresá el código de sala que te pasó tu amigo para sentarte a la mesa.
+          Ingresá el código de sala con el teclado de tu celu para sentarte a la mesa.
         </p>
 
-        <div className="join-name-row">
-          <label htmlFor="joinPlayerName">Tu Apodo:</label>
-          <input
-            id="joinPlayerName"
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            maxLength={16}
-            placeholder="Tu nombre"
-          />
-        </div>
+        <form onSubmit={handleSubmit}>
+          {/* Nickname Input */}
+          <div className="join-name-row">
+            <label htmlFor="joinPlayerName">Tu Apodo:</label>
+            <input
+              id="joinPlayerName"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              maxLength={16}
+              placeholder="Escribí tu apodo"
+            />
+          </div>
 
-        <div className="join-code-display">
-          {[0, 1, 2, 3, 4].map(idx => (
-            <div key={idx} className={`pin-digit ${code[idx] ? 'filled' : ''}`}>
-              {code[idx] || '·'}
+          {/* Native Room Code Input with Paste button */}
+          <div className="join-code-input-container">
+            <label htmlFor="joinRoomCode">Código de la Sala:</label>
+            <div className="join-code-field-wrap">
+              <input
+                ref={inputRef}
+                id="joinRoomCode"
+                type="text"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                value={code}
+                onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                placeholder="Ej: TRU74"
+                maxLength={8}
+                className="input-native-room-code"
+              />
+              <button
+                type="button"
+                className="btn-paste-code"
+                onClick={handlePasteCode}
+                title="Pegar código del portapapeles"
+              >
+                📋 Pegar
+              </button>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Quick alphanumeric keypad */}
-        <div className="join-keypad">
-          {['1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','0'].map(k => (
-            <button key={k} className="btn-keypad" onClick={() => handleKey(k)}>
-              {k}
-            </button>
-          ))}
-          <button className="btn-keypad key-action" onClick={handleBackspace}>
-            ⌫
-          </button>
           <button
-            className="btn-keypad key-action join-enter"
-            disabled={code.length < 3}
-            onClick={() => handleSubmit()}
+            type="submit"
+            className="btn-primary-action full-width"
+            disabled={code.trim().length < 3}
+            style={{ marginTop: '12px' }}
           >
-            ➔
+            Entrar a la Mesa 🃏
           </button>
-        </div>
-
-        <button
-          className="btn-primary-action full-width"
-          disabled={code.length < 3}
-          onClick={() => handleSubmit()}
-          style={{ marginTop: '16px' }}
-        >
-          Entrar a la Mesa
-        </button>
+        </form>
       </div>
     </div>
   );
