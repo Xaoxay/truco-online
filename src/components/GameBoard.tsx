@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Card as CardType, PlayerId, TrucoLevel, EnvidoType, RoomConfig } from '../engine/types';
 import { CardFace, CardBack } from './Card';
+import { PlayerHandsHoldingCards, OpponentHandsHoldingCards } from './HandsHoldingCards';
 import ScoreSheet, { PhaseDisplay } from './ScoreSheet';
 import {
   soundCardPlay,
@@ -114,6 +115,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   // UI speech & alerts
   const [speechText, setSpeechText] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [playerGesture, setPlayerGesture] = useState<string | null>(null);
+  const [oppGesture, setOppGesture] = useState<string | null>(null);
   const [matchWinner, setMatchWinner] = useState<PlayerId | null>(null);
 
   // Keyboard Shortcuts for PC Desktop Play
@@ -418,7 +421,9 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         showToast(`${config.opponentName} se fue al mazo`);
         awardTrucoTo('player');
       } else if (msg.type === 'SENA') {
-        showToast(`${config.opponentName} hizo seña: ${msg.sena}`);
+        const gesture = msg.gesture || msg.sena?.match(/[\p{Emoji}\u200d]+/gu)?.[0] || '😉';
+        setOppGesture(gesture);
+        setTimeout(() => setOppGesture(null), 2500);
       } else if (msg.type === 'CHAT') {
         showSpeech(msg.text);
       } else if (msg.type === 'REVANCHE') {
@@ -829,18 +834,21 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     awardTrucoTo('opponent');
   };
 
-  const handleSendSena = (sena: string) => {
+  const handleSendSena = (gesture: string) => {
     soundButton();
+    setPlayerGesture(gesture);
+    setTimeout(() => setPlayerGesture(null), 2500);
+
     if (isMulti) {
-      showToast(`Le hiciste la seña: ${sena} a tu compañero`);
       setTimeout(() => {
-        showSpeech('😉 ¡Entendido compa, vamos por ellos!');
-      }, 1000);
+        setOppGesture('😉');
+        setTimeout(() => setOppGesture(null), 2200);
+      }, 900);
       return;
     }
-    showToast(`Hiciste la seña: ${sena}`);
+
     if (config.mode === 'online' && network) {
-      network.sendMessage({ type: 'SENA', sena });
+      network.sendMessage({ type: 'SENA', sena: gesture, gesture });
     }
   };
 
@@ -917,7 +925,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       )}
 
       {/* Main Table */}
-      <div className="game-table-container">
+      <div className="game-table-container wooden-table">
         {/* Top HUD */}
         <div className="game-hud">
           <div className="anotador-mini" onClick={() => setScoreSheetOpen(true)}>
@@ -1028,29 +1036,28 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           </div>
         ) : (
           <>
-            {/* Opponent Area */}
+            {/* Opponent Area con Manos sosteniendo cartas */}
             <div className="opponent-area">
-              <div className="opponent-badge">
-                <span className="opponent-avatar">
-                  {config.mode === 'bot' ? '🤠' : '😎'}
-                </span>
-                <span className="opponent-name">{config.opponentName}</span>
-                {turn === 'opponent' && <span className="turn-indicator-pulse"></span>}
-              </div>
+              <OpponentHandsHoldingCards
+                cardsCount={oppCardsCount}
+                isTurn={turn === 'opponent'}
+                name={config.opponentName}
+                avatar={config.mode === 'bot' ? '🤠' : '😎'}
+              />
+
+              {/* Floating Gesture Pop for Opponent (SOLO el gesto, sin palabra) */}
+              {oppGesture && (
+                <div className="floating-gesture-bubble opp-gesture-pop">
+                  {oppGesture}
+                </div>
+              )}
 
               {/* Speech Balloon */}
               {speechText && <div className="speech-bubble active">{speechText}</div>}
-
-              {/* Opponent Hand (Card backs) */}
-              <div className="opponent-hand">
-                {Array.from({ length: oppCardsCount }).map((_, idx) => (
-                  <CardBack key={idx} small />
-                ))}
-              </div>
             </div>
 
-            {/* The Felt Table (Center) */}
-            <div className="felt-center">
+            {/* The Felt Table (Center - Tapete verde embutido en madera) */}
+            <div className="felt-center wood-table-felt-inset">
               <div className="trick-slots-container">
                 {tricks.map((trick, idx) => (
                   <div key={idx} className="trick-column">
@@ -1070,6 +1077,13 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
         {/* Player Area (Bottom) */}
         <div className="player-area">
+          {/* Floating Gesture Pop for Player (SOLO el gesto, sin palabra) */}
+          {playerGesture && (
+            <div className="floating-gesture-bubble player-gesture-pop">
+              {playerGesture}
+            </div>
+          )}
+
           {/* Callouts Bar */}
           <div className="player-callouts-bar">
             {pendingCall && pendingCall.caller === 'opponent' ? (
@@ -1142,35 +1156,24 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             )}
           </div>
 
-          {/* Player's Cards Hand */}
-          <div className="player-hand">
-            {playerHand.map((card, idx) => (
-              <div key={card.id} className="player-card-wrapper">
-                {isDesktop && <div className="card-key-badge">[{idx + 1}]</div>}
-                <CardFace
-                  card={card}
-                  onClick={() => handlePlayCard(idx)}
-                  disabled={isMulti ? currentTurnSeat !== 0 || pendingCall !== null : turn !== 'player' || pendingCall !== null}
-                />
-              </div>
-            ))}
-          </div>
+          {/* Manos del Jugador sosteniendo las cartas en abanico */}
+          <PlayerHandsHoldingCards
+            cards={playerHand}
+            onPlayCard={handlePlayCard}
+            canPlay={isMulti ? currentTurnSeat === 0 && pendingCall === null : turn === 'player' && pendingCall === null}
+            isDesktop={isDesktop}
+          />
 
-          {/* Quick Señas Drawer */}
-          <div className="senas-drawer">
+          {/* Quick Señas Drawer: SOLO el gesto / emoji, sin palabras */}
+          <div className="senas-drawer" role="toolbar" aria-label="Gestos y señas del Truco">
             <span className="senas-label">SEÑAS:</span>
-            <button className="btn-sena" onClick={() => handleSendSena('😉 1 Espada')}>
-              😉 1 Espada
-            </button>
-            <button className="btn-sena" onClick={() => handleSendSena('🤨 1 Basto')}>
-              🤨 1 Basto
-            </button>
-            <button className="btn-sena" onClick={() => handleSendSena('😏 7 Espada')}>
-              😏 7 Espada
-            </button>
-            <button className="btn-sena" onClick={() => handleSendSena('😮 7 Oro')}>
-              😮 7 Oro
-            </button>
+            <button className="btn-sena-gesture" onClick={() => handleSendSena('😉')} title="Guiño (1 Espada)" aria-label="Guiño">😉</button>
+            <button className="btn-sena-gesture" onClick={() => handleSendSena('🤨')} title="Ceja (1 Basto)" aria-label="Ceja">🤨</button>
+            <button className="btn-sena-gesture" onClick={() => handleSendSena('😗')} title="Beso (7 Espada)" aria-label="Beso">😗</button>
+            <button className="btn-sena-gesture" onClick={() => handleSendSena('😮')} title="Boca (7 Oro)" aria-label="Boca">😮</button>
+            <button className="btn-sena-gesture" onClick={() => handleSendSena('😬')} title="Morder labio (Tres)" aria-label="Morder labio">😬</button>
+            <button className="btn-sena-gesture" onClick={() => handleSendSena('😲')} title="Hombros (Dos)" aria-label="Hombros">😲</button>
+            <button className="btn-sena-gesture" onClick={() => handleSendSena('😴')} title="Ojos cerrados (Ciegas)" aria-label="Ojos cerrados">😴</button>
           </div>
         </div>
       </div>

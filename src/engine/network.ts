@@ -11,7 +11,7 @@ export type NetworkMessage =
   | { type: 'RESPONSE'; resp: 'quiero' | 'no_quiero'; toCall: string }
   | { type: 'ENVIDO_POINTS'; points: number }
   | { type: 'GO_MAZO' }
-  | { type: 'SENA'; sena: string }
+  | { type: 'SENA'; sena: string; gesture?: string }
   | { type: 'CHAT'; text: string; from: string }
   | { type: 'REVANCHE' };
 
