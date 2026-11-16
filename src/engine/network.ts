@@ -46,6 +46,13 @@ export class TrucoNetwork {
   private mySendTopic: string = '';
   private myListenTopic: string = '';
   private isSubscribed: boolean = false;
+  // Cada mensaje viaja con (sid, seq) para descartar duplicados (MQTT QoS 1 puede entregar dos veces)
+  private readonly sessionId: string = Math.random().toString(36).slice(2, 10);
+  private sendSeq: number = 0;
+  private peerSid: string = '';
+  private seenSeqs: Set<number> = new Set();
+  private everConnected: boolean = false;
+  private joinAttempts: number = 0;
 
   constructor(callbacks: NetworkCallbacks) {
     this.callbacks = callbacks;
@@ -81,7 +88,7 @@ export class TrucoNetwork {
     this.keepaliveTimer = setInterval(() => {
       if (this.client && this.client.connected) {
         // Enviar ping si es necesario
-      } else if (this.client && !this.client.connected && !this.client.disconnecting) {
+      } else if (this.client && !this.client.connected && !this.client.disconnecting && !this.client.reconnecting) {
         try {
           this.client.reconnect();
         } catch {}
@@ -101,6 +108,8 @@ export class TrucoNetwork {
     this.destroy();
     this.isHost = true;
     this.hasHandshakeCompleted = false;
+    this.currentBrokerIdx = 0;
+    this.everConnected = false;
     this.roomCode = roomCode.toUpperCase().trim();
     this.mySendTopic = `${ROOM_PREFIX}${this.roomCode}/host`;
     this.myListenTopic = `${ROOM_PREFIX}${this.roomCode}/guest`;
@@ -114,6 +123,9 @@ export class TrucoNetwork {
     this.destroy();
     this.isHost = false;
     this.hasHandshakeCompleted = false;
+    this.currentBrokerIdx = 0;
+    this.everConnected = false;
+    this.joinAttempts = 0;
     this.roomCode = roomCode.toUpperCase().trim();
     this.mySendTopic = `${ROOM_PREFIX}${this.roomCode}/guest`;
     this.myListenTopic = `${ROOM_PREFIX}${this.roomCode}/host`;
@@ -123,6 +135,7 @@ export class TrucoNetwork {
   }
 
   private connectMqtt(guestName?: string) {
+    if (!this.visibilityHandler) this.setupVisibilityListener();
     const brokerUrl = BROKERS[this.currentBrokerIdx];
     const rolePrefix = this.isHost ? 'host' : 'guest';
     const clientId = `truco-${rolePrefix}-${this.roomCode}-${Math.random().toString(16).slice(2, 8)}`;
@@ -141,6 +154,7 @@ export class TrucoNetwork {
       this.startKeepalive();
 
       this.client.on('connect', () => {
+        this.everConnected = true;
         console.log(`[TrucoNetwork] Conectado exitosamente al broker MQTT (${brokerUrl})`);
         this.client?.subscribe(this.myListenTopic, { qos: 1 }, (err) => {
           if (err) {
@@ -175,7 +189,22 @@ export class TrucoNetwork {
         if (topic !== this.myListenTopic) return;
         try {
           const raw = payload.toString();
-          const msg = JSON.parse(raw) as NetworkMessage;
+          const env = JSON.parse(raw) as NetworkMessage & { _s?: number; _sid?: string };
+          // Deduplicación: el mismo (sid, seq) no se procesa dos veces
+          if (typeof env._s === 'number' && env._sid) {
+            if (env._sid !== this.peerSid) {
+              this.peerSid = env._sid;
+              this.seenSeqs = new Set();
+            }
+            if (this.seenSeqs.has(env._s)) return;
+            this.seenSeqs.add(env._s);
+            if (this.seenSeqs.size > 500) {
+              const oldest = this.seenSeqs.values().next().value;
+              if (oldest !== undefined) this.seenSeqs.delete(oldest);
+            }
+          }
+          const { _s, _sid, ...msg } = env;
+          void _s; void _sid;
           console.log('[TrucoNetwork] Mensaje entrante recibido:', msg.type);
 
           if (msg.type === 'JOIN_ACK') {
@@ -186,7 +215,7 @@ export class TrucoNetwork {
             this.callbacks.onStatusChange('connected', `¡${msg.playerName} se unió a la mesa!`);
           }
 
-          this.callbacks.onMessage(msg);
+          this.callbacks.onMessage(msg as NetworkMessage);
         } catch (e) {
           console.error('[TrucoNetwork] Error parseando mensaje de red:', e);
         }
@@ -207,6 +236,12 @@ export class TrucoNetwork {
 
       this.client.on('error', (err) => {
         console.error('[TrucoNetwork] Error de conexión:', err);
+        if (this.everConnected) {
+          // Ya estábamos en la sala: mqtt.js reintenta solo contra el MISMO broker.
+          // Cambiar de broker acá dejaba a los dos jugadores en servidores distintos.
+          this.callbacks.onStatusChange('connecting', 'Reconectando con la sala...');
+          return;
+        }
         // Si falla el broker principal, probar el siguiente broker
         if (this.currentBrokerIdx < BROKERS.length - 1) {
           this.currentBrokerIdx++;
@@ -230,7 +265,7 @@ export class TrucoNetwork {
       const msg = this.pendingQueue.shift();
       if (msg) {
         try {
-          this.client.publish(this.mySendTopic, JSON.stringify(msg), { qos: 1 });
+          this.publishMessage(msg);
         } catch (e) {
           console.error('[TrucoNetwork] Error al vaciar cola:', e);
         }
@@ -238,16 +273,20 @@ export class TrucoNetwork {
     }
   }
 
+  private publishMessage(msg: NetworkMessage) {
+    const envelope = { ...msg, _s: ++this.sendSeq, _sid: this.sessionId };
+    this.client!.publish(this.mySendTopic, JSON.stringify(envelope), { qos: 1 });
+  }
+
   private startGuestHandshake(guestName: string) {
     this.stopHandshake();
-    let attempts = 0;
     const sendJoin = () => {
       if (this.hasHandshakeCompleted) {
         this.stopHandshake();
         return;
       }
       if (this.client && this.client.connected) {
-        console.log(`[TrucoNetwork] Enviando saludo JOIN como '${guestName}' (intento ${attempts + 1})...`);
+        console.log(`[TrucoNetwork] Enviando saludo JOIN como '${guestName}' (intento ${this.joinAttempts + 1})...`);
         try {
           this.client.publish(
             this.mySendTopic,
@@ -258,8 +297,19 @@ export class TrucoNetwork {
           console.warn('[TrucoNetwork] Intento de JOIN fallido:', e);
         }
       }
-      attempts++;
-      if (attempts >= 25) {
+      this.joinAttempts++;
+      // Si el anfitrión no aparece, probar el siguiente broker (el anfitrión puede estar en otro)
+      if (this.joinAttempts % 8 === 0 && this.joinAttempts < 24 && !this.hasHandshakeCompleted) {
+        this.stopHandshake();
+        this.isSubscribed = false;
+        this.everConnected = false;
+        this.currentBrokerIdx = (this.currentBrokerIdx + 1) % BROKERS.length;
+        const old = this.client;
+        this.client = null;
+        old?.end(true, () => this.connectMqtt(guestName));
+        return;
+      }
+      if (this.joinAttempts >= 25) {
         this.stopHandshake();
         if (!this.hasHandshakeCompleted) {
           this.callbacks.onStatusChange(
@@ -284,7 +334,8 @@ export class TrucoNetwork {
   public sendMessage(msg: NetworkMessage) {
     if (this.client && this.client.connected && this.isSubscribed) {
       try {
-        this.client.publish(this.mySendTopic, JSON.stringify(msg), { qos: 1 });
+        this.flushQueue(); // mantiene el orden si había mensajes en espera
+        this.publishMessage(msg);
       } catch (e) {
         console.warn('[TrucoNetwork] Envío falló, encolando mensaje:', e);
         this.pendingQueue.push(msg);
