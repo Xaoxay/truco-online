@@ -56,9 +56,12 @@ export default function JoinModal({ open, onClose, onJoin, initialCode = '' }: J
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!cleanCode.startsWith('TRU') && cleanCode.length > 0) {
+      cleanCode = 'TRU' + cleanCode;
+    }
     const cleanName = name.trim() || 'Jugador';
-    if (cleanCode.length >= 3) {
+    if (cleanCode.length >= 4) {
       soundButton();
       if (typeof window !== 'undefined') {
         localStorage.setItem('truco-player-name', cleanName);

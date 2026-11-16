@@ -74,7 +74,8 @@ export default function OnlineLobby({
 
   // Render slots for the chosen format
   const renderSlots = () => {
-    const oppDisplayName = peerName || opponentName;
+    const isPeerConnected = Boolean(peerName);
+    const oppDisplayName = isPeerConnected ? peerName : isHost ? (fillBots ? 'Don Florencio (Bot)' : 'Esperando a tu amigo...') : 'Conectando con el anfitrión...';
 
     if (matchType === '1v1') {
       return (
@@ -92,20 +93,20 @@ export default function OnlineLobby({
 
           <div className="slot-player">
             <div className="slot-left">
-              <div className="slot-avatar" style={{ borderColor: oppDisplayName ? 'var(--gold)' : '#555' }}>
-                {oppDisplayName ? '😎' : fillBots ? '🤖' : '⏳'}
+              <div className="slot-avatar" style={{ borderColor: isPeerConnected ? 'var(--gold)' : '#555' }}>
+                {isPeerConnected ? '😎' : isHost && fillBots ? '🤖' : '⏳'}
               </div>
               <div>
                 <div className="slot-name">
-                  {oppDisplayName ? oppDisplayName : fillBots ? 'Don Florencio (Bot)' : 'Esperando a tu amigo...'}
+                  {oppDisplayName}
                 </div>
-                <div className="slot-tag" style={{ color: oppDisplayName ? 'var(--gold-light)' : '#888' }}>
-                  {oppDisplayName ? 'Listo para jugar' : fillBots ? 'Bot de Reemplazo' : 'Pie • Ellos'}
+                <div className="slot-tag" style={{ color: isPeerConnected ? 'var(--gold-light)' : '#888' }}>
+                  {isPeerConnected ? 'Listo para jugar' : isHost && fillBots ? 'Bot de Reemplazo' : 'Pie • Ellos'}
                 </div>
               </div>
             </div>
-            <div className={`slot-status ${oppDisplayName || fillBots ? 'ready' : 'waiting'}`}>
-              {oppDisplayName ? 'En la mesa' : fillBots ? 'Listo (Bot)' : 'Esperando...'}
+            <div className={`slot-status ${isPeerConnected ? 'ready' : isHost && fillBots ? 'ready' : 'waiting'}`}>
+              {isPeerConnected ? 'En la mesa' : isHost && fillBots ? 'Listo (Bot)' : 'Conectando...'}
             </div>
           </div>
         </div>

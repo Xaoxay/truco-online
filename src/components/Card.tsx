@@ -10,26 +10,26 @@ interface CardProps {
   className?: string;
 }
 
-/** Obtiene la URL exacta de la carta según el host (GitHub Pages vs Localhost vs Capacitor) */
+/** Obtiene la URL exacta de la carta vectorial de alta definición (SVG con fallback JPG) */
 export function getCardUrl(suit: string, num: number | string): string {
   if (typeof window !== 'undefined') {
     const loc = window.location;
     // Si corre en GitHub Pages (ej: xaoxay.github.io/truco-online)
     if (loc.hostname.includes('github.io') || loc.pathname.includes('/truco-online')) {
-      return `/truco-online/cards/${suit}-${num}.jpg`;
+      return `/truco-online/cards/${suit}-${num}.svg`;
     }
   }
-  return `./cards/${suit}-${num}.jpg`;
+  return `./cards/${suit}-${num}.svg`;
 }
 
 export function getCardBackUrl(): string {
   if (typeof window !== 'undefined') {
     const loc = window.location;
     if (loc.hostname.includes('github.io') || loc.pathname.includes('/truco-online')) {
-      return `/truco-online/cards/back.png`;
+      return `/truco-online/cards/back.svg`;
     }
   }
-  return `./cards/back.png`;
+  return `./cards/back.svg`;
 }
 
 const suitSymbols: Record<string, string> = {
@@ -65,15 +65,19 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
   const handleError = () => {
     if (attempt === 0) {
       setAttempt(1);
-      // Alternar entre ruta absoluta de GitHub Pages y ruta relativa
+      // Alternar entre ruta absoluta de GitHub Pages y ruta relativa en SVG
       if (currentSrc.includes('/truco-online/')) {
-        setCurrentSrc(`./cards/${card.suit}-${card.num}.jpg`);
+        setCurrentSrc(`./cards/${card.suit}-${card.num}.svg`);
       } else {
-        setCurrentSrc(`/truco-online/cards/${card.suit}-${card.num}.jpg`);
+        setCurrentSrc(`/truco-online/cards/${card.suit}-${card.num}.svg`);
       }
-    } else {
-      // Ambas rutas fallaron: activar renderizado visual garantizado
+    } else if (attempt === 1) {
       setAttempt(2);
+      // Fallback a JPG si el SVG fallara
+      setCurrentSrc(`./cards/${card.suit}-${card.num}.jpg`);
+    } else {
+      // Todas las rutas fallaron: activar renderizado visual garantizado
+      setAttempt(3);
     }
   };
 
@@ -101,7 +105,7 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
       title={card.label}
       aria-label={card.label}
     >
-      {attempt < 2 ? (
+      {attempt < 3 ? (
         <img
           src={currentSrc}
           alt={card.label}
@@ -156,19 +160,18 @@ export function CardBack({ small, className = '' }: { small?: boolean; className
   const handleError = () => {
     if (attempt === 0) {
       setAttempt(1);
-      if (src.includes('/truco-online/')) {
-        setSrc('./cards/back.png');
-      } else {
-        setSrc('/truco-online/cards/back.png');
-      }
-    } else {
+      setSrc('./cards/back.svg');
+    } else if (attempt === 1) {
       setAttempt(2);
+      setSrc('./cards/back.png');
+    } else {
+      setAttempt(3);
     }
   };
 
   return (
     <div className={`card-back-argentina ${small ? 'small-back' : ''} ${className}`} aria-hidden="true">
-      {attempt < 2 ? (
+      {attempt < 3 ? (
         <img
           src={src}
           alt="Dorso de naipe"
