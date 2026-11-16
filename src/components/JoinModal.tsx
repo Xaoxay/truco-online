@@ -56,7 +56,13 @@ export default function JoinModal({ open, onClose, onJoin, initialCode = '' }: J
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    let cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let raw = code.trim();
+    // Extraer código si el usuario pegó el link completo de la sala
+    const urlMatch = raw.match(/[?&]room=([A-Za-z0-9]+)/i);
+    if (urlMatch && urlMatch[1]) {
+      raw = urlMatch[1];
+    }
+    let cleanCode = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!cleanCode.startsWith('TRU') && cleanCode.length > 0) {
       cleanCode = 'TRU' + cleanCode;
     }

@@ -505,6 +505,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             startNewRound('player');
           }
         }
+      } else if (msg.type === 'JOIN') {
+        if (config.mode === 'online' && network && network.isHost) {
+          network.sendMessage({
+            type: 'JOIN_ACK',
+            hostName: config.playerName || 'Anfitrión',
+            goal: config.goal,
+            withFlor: config.withFlor,
+          });
+        }
       } else if (msg.type === 'REVANCHE') {
         setScorePlayer(0);
         setScoreOpp(0);
