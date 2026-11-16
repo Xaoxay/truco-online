@@ -12,12 +12,16 @@ interface PlayerHandsProps {
 /** Abanico Criollo de Cartas del Jugador */
 export function PlayerHandsHoldingCards({ cards, onPlayCard, canPlay, isDesktop }: PlayerHandsProps) {
   const count = cards.length;
+  const lastPlayTime = React.useRef(0);
 
   const handlePlay = (idx: number, e?: React.SyntheticEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
+    const now = Date.now();
+    if (now - lastPlayTime.current < 400) return;
+    lastPlayTime.current = now;
     if (!canPlay) return;
     onPlayCard(idx);
   };

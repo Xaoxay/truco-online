@@ -40,7 +40,7 @@ export default function OnlineLobby({
   onCancel,
 }: OnlineLobbyProps) {
   const [copied, setCopied] = useState(false);
-  const [fillBots, setFillBots] = useState(true);
+  const [fillBots, setFillBots] = useState(false);
 
   const getShareUrl = () => {
     const url = new URL(window.location.href);

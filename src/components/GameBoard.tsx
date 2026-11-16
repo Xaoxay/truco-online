@@ -127,10 +127,17 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     starterName: string;
   } | null>(null);
 
-  // Sincronización en tiempo real para partidas online WebRTC
+  // Sincronización en tiempo real para partidas online y cálculo exacto de tantos
   const oppHandCardsRef = useRef<CardType[]>([]);
   const playerHandRef = useRef<CardType[]>([]);
   const manoRef = useRef<PlayerId>('player');
+  const initialPlayerHandRef = useRef<CardType[]>([]);
+  const initialOppHandRef = useRef<CardType[]>([]);
+  const [initialPlayerHand, setInitialPlayerHand] = useState<CardType[]>([]);
+  const [initialOppHand, setInitialOppHand] = useState<CardType[]>([]);
+  const [remoteOppEnvido, setRemoteOppEnvido] = useState<number | null>(null);
+
+  const myEnvidoPoints = calculateEnvido(initialPlayerHand.length === 3 ? initialPlayerHand : playerHand);
 
   const handleShuffleAndCut = () => {
     soundButton();
@@ -378,10 +385,16 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     setTrucoCaller(null);
     setEnvidoPlayed(false);
     setFirstCardPlayed(false);
+    setRemoteOppEnvido(null);
 
     oppHandCardsRef.current = oHand;
     playerHandRef.current = pHand;
     manoRef.current = nextMano;
+
+    initialPlayerHandRef.current = pHand;
+    initialOppHandRef.current = oHand;
+    setInitialPlayerHand(pHand);
+    setInitialOppHand(oHand);
 
     if (config.mode === 'online' && network && network.isHost) {
       // Host deals and sends guest's hand
@@ -409,6 +422,21 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       soundWinRound();
       showToast('¡Nueva mano repartida!');
     }
+
+    // Si el rival (Don Florencio) es mano, juega su carta automáticamente sin obligar a cantar
+    if (config.mode === 'bot' && nextMano === 'opponent') {
+      setTimeout(() => {
+        runBotTurn(
+          [
+            { playerCard: null, oppCard: null, winner: null },
+            { playerCard: null, oppCard: null, winner: null },
+            { playerCard: null, oppCard: null, winner: null },
+          ],
+          0,
+          pHand
+        );
+      }, 900);
+    }
   };
 
   // Initialize first round on mount
@@ -420,6 +448,9 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     if (config.mode === 'online' && network && !network.isHost) {
       if (initialRoundData && initialRoundData.hand && initialRoundData.hand.length > 0) {
         setPlayerHand(initialRoundData.hand);
+        setInitialPlayerHand(initialRoundData.hand);
+        initialPlayerHandRef.current = initialRoundData.hand;
+        setRemoteOppEnvido(null);
         setOppCardsCount(initialRoundData.oppHandCount || 3);
         setMano(initialRoundData.mano || 'player');
         setTurn(initialRoundData.mano || 'player');
@@ -450,6 +481,9 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     const handleNetMsg = (msg: any) => {
       if (msg.type === 'START_ROUND') {
         setPlayerHand(msg.hand);
+        setInitialPlayerHand(msg.hand);
+        initialPlayerHandRef.current = msg.hand;
+        setRemoteOppEnvido(null);
         setOppCardsCount(msg.oppHandCount || 3);
         const m = msg.mano || 'player';
         setMano(m);
@@ -467,6 +501,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         setFirstCardPlayed(false);
         soundWinRound();
         showToast('¡Partida comenzada! Repartió ' + (msg.hostName || config.opponentName));
+      } else if (msg.type === 'ENVIDO_POINTS') {
+        setRemoteOppEnvido(msg.points);
       } else if (msg.type === 'HOST_START_MATCH') {
         if (!network.isHost) {
           network.sendMessage({ type: 'GUEST_READY' });
@@ -878,26 +914,54 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           showToast(`${config.opponentName} sumó ${pts} tantos de Envido`);
         }
       } else {
-        // Both want Envido: compare scores
-        const pEnvido = calculateEnvido(playerHand);
-        const oEnvido = calculateEnvido(oppHandCards);
+        // Both want Envido: compare scores calculated from ORIGINAL 3-card hands
+        const pEnvido = calculateEnvido(
+          initialPlayerHandRef.current.length === 3 ? initialPlayerHandRef.current : playerHand
+        );
 
-        showSpeech(`Tengo ${oEnvido}`);
-        setTimeout(() => {
-          let pts = envidoQuieroPoints(callType);
-          if (callType === 'falta_envido') {
-            pts = faltaEnvidoPoints(scorePlayer, scoreOpp, config.goal);
-          }
+        if (config.mode === 'online' && network) {
+          network.sendMessage({ type: 'ENVIDO_POINTS', points: pEnvido });
+        }
 
-          if (pEnvido > oEnvido || (pEnvido === oEnvido && mano === 'player')) {
-            setScorePlayer(prev => prev + pts);
-            showToast(`¡Ganaste el Envido con ${pEnvido} tantos! (+${pts})`);
-            soundWinRound();
-          } else {
-            setScoreOpp(prev => prev + pts);
-            showToast(`${config.opponentName} ganó el Envido con ${oEnvido} tantos (+${pts})`);
-          }
-        }, 1200);
+        const oEnvido = config.mode === 'online'
+          ? (remoteOppEnvido ?? (oppHandCardsRef.current.length > 0 ? calculateEnvido(oppHandCardsRef.current) : 0))
+          : calculateEnvido(initialOppHandRef.current.length === 3 ? initialOppHandRef.current : oppHandCards);
+
+        const isPlayerMano = mano === 'player';
+        let pts = envidoQuieroPoints(callType);
+        if (callType === 'falta_envido') {
+          pts = faltaEnvidoPoints(scorePlayer, scoreOpp, config.goal);
+        }
+
+        const playerWins = pEnvido > oEnvido || (pEnvido === oEnvido && isPlayerMano);
+
+        if (isPlayerMano) {
+          showToast(`Vos (Mano): ¡${pEnvido} de Envido!`);
+          setTimeout(() => {
+            if (playerWins) {
+              showSpeech(`¡Son buenas! (Tengo ${oEnvido})`);
+              setScorePlayer(prev => prev + pts);
+              showToast(`¡Ganaste el Envido (${pEnvido} a ${oEnvido})! (+${pts} tantos)`);
+              soundWinRound();
+            } else {
+              showSpeech(`¡${oEnvido} son mejores!`);
+              setScoreOpp(prev => prev + pts);
+              showToast(`${config.opponentName} ganó el Envido con ${oEnvido} tantos (+${pts})`);
+            }
+          }, 1100);
+        } else {
+          showSpeech(`¡${oEnvido} de Envido!`);
+          setTimeout(() => {
+            if (playerWins) {
+              showToast(`¡${pEnvido} son mejores! Ganaste el Envido (+${pts} tantos)`);
+              setScorePlayer(prev => prev + pts);
+              soundWinRound();
+            } else {
+              showToast(`Son buenas (${config.opponentName} se lleva ${pts} tantos)`);
+              setScoreOpp(prev => prev + pts);
+            }
+          }, 1100);
+        }
       }
     }
 
@@ -1194,7 +1258,9 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                   className="btn-callout quiero-action"
                   onClick={() => handleCallResponse('player', 'quiero', pendingCall.type)}
                 >
-                  <span>¡Quiero!</span> {isDesktop && <kbd className="btn-kbd">Q</kbd>}
+                  <span>
+                    ¡Quiero! {pendingCall.type.includes('envido') && `(${myEnvidoPoints} pts)`}
+                  </span> {isDesktop && <kbd className="btn-kbd">Q</kbd>}
                 </button>
                 <button
                   className="btn-callout no-quiero-action"
@@ -1223,8 +1289,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
               <>
                 {!envidoPlayed && !firstCardPlayed && currentTrick === 0 && (
                   <>
-                    <button className="btn-callout" onClick={() => handlePlayerCall('envido')}>
-                      <span>Envido</span> {isDesktop && <kbd className="btn-kbd">E</kbd>}
+                    <button className="btn-callout envido-btn" onClick={() => handlePlayerCall('envido')}>
+                      <span>Envido ({myEnvidoPoints} pts)</span> {isDesktop && <kbd className="btn-kbd">E</kbd>}
                     </button>
                     <button className="btn-callout" onClick={() => handlePlayerCall('real_envido')}>
                       <span>Real Envido</span>
