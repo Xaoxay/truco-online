@@ -367,12 +367,6 @@ export default function OnlineLobby({
             soundButton();
             onStartMatch();
           }}
-          onTouchEnd={(e) => {
-            if (!peerName && !fillBots) return;
-            e.preventDefault();
-            soundButton();
-            onStartMatch();
-          }}
         >
           <span>
             {peerName

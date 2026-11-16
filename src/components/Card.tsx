@@ -10,26 +10,26 @@ interface CardProps {
   className?: string;
 }
 
-/** Obtiene la URL exacta de la carta vectorial de alta definición (SVG con fallback JPG) */
+/** Obtiene la URL exacta de la carta de alta definición (WebP ultra liviano con fallback SVG/JPG) */
 export function getCardUrl(suit: string, num: number | string): string {
   if (typeof window !== 'undefined') {
     const loc = window.location;
     // Si corre en GitHub Pages (ej: xaoxay.github.io/truco-online)
     if (loc.hostname.includes('github.io') || loc.pathname.includes('/truco-online')) {
-      return `/truco-online/cards/${suit}-${num}.svg`;
+      return `/truco-online/cards/${suit}-${num}.webp`;
     }
   }
-  return `./cards/${suit}-${num}.svg`;
+  return `./cards/${suit}-${num}.webp`;
 }
 
 export function getCardBackUrl(): string {
   if (typeof window !== 'undefined') {
     const loc = window.location;
     if (loc.hostname.includes('github.io') || loc.pathname.includes('/truco-online')) {
-      return `/truco-online/cards/back.svg`;
+      return `/truco-online/cards/back.webp`;
     }
   }
-  return `./cards/back.svg`;
+  return `./cards/back.webp`;
 }
 
 const suitSymbols: Record<string, string> = {
@@ -65,19 +65,23 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
   const handleError = () => {
     if (attempt === 0) {
       setAttempt(1);
-      // Alternar entre ruta absoluta de GitHub Pages y ruta relativa en SVG
+      // Alternar ruta relativa o absoluta de WebP
       if (currentSrc.includes('/truco-online/')) {
-        setCurrentSrc(`./cards/${card.suit}-${card.num}.svg`);
+        setCurrentSrc(`./cards/${card.suit}-${card.num}.webp`);
       } else {
-        setCurrentSrc(`/truco-online/cards/${card.suit}-${card.num}.svg`);
+        setCurrentSrc(`/truco-online/cards/${card.suit}-${card.num}.webp`);
       }
     } else if (attempt === 1) {
       setAttempt(2);
-      // Fallback a JPG si el SVG fallara
+      // Fallback a SVG si no existiera WebP
+      setCurrentSrc(`./cards/${card.suit}-${card.num}.svg`);
+    } else if (attempt === 2) {
+      setAttempt(3);
+      // Fallback a JPG
       setCurrentSrc(`./cards/${card.suit}-${card.num}.jpg`);
     } else {
       // Todas las rutas fallaron: activar renderizado visual garantizado
-      setAttempt(3);
+      setAttempt(4);
     }
   };
 
@@ -105,7 +109,7 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
       title={card.label}
       aria-label={card.label}
     >
-      {attempt < 3 ? (
+      {attempt < 4 ? (
         <img
           src={currentSrc}
           alt={card.label}
@@ -160,10 +164,10 @@ export function CardBack({ small, className = '' }: { small?: boolean; className
   const handleError = () => {
     if (attempt === 0) {
       setAttempt(1);
-      setSrc('./cards/back.svg');
+      setSrc('./cards/back.webp');
     } else if (attempt === 1) {
       setAttempt(2);
-      setSrc('./cards/back.png');
+      setSrc('./cards/back.svg');
     } else {
       setAttempt(3);
     }
