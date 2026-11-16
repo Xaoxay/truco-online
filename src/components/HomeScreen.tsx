@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import type { RoomConfig, MatchType } from '../engine/types';
 import { soundButton } from '../engine/audio';
+import { CardFace } from './Card';
 
 interface HomeScreenProps {
   onStartGame: (config: RoomConfig) => void;
@@ -93,34 +94,28 @@ export default function HomeScreen({
       </div>
 
       <div className="home-hero">
-        <div className="home-badge">🇦🇷 TRUCO CRIOLLO MÓVIL</div>
-        <h1 className="home-title">
-          TRUCO<span>PRO</span>
-        </h1>
-        <p className="home-subtitle">Mesa gaucha, picardía y juego limpio</p>
+        <div className="home-badge">🇦🇷 TRUCO ARGENTINO</div>
+        <h1 className="home-title">TRUCO</h1>
 
-        {/* Fan of Spanish Cards */}
+        {/* Abanico de Naipes Españoles Tradicionales de Portada (Foto Oficial) */}
         <div className="home-cards-fan">
           <div className="fan-card fan-left">
-            <span className="fan-num" style={{ color: '#16a34a' }}>1</span>
-            <svg width="28" height="28" viewBox="0 0 24 24">
-              <path d="M12 2l3.5 7h-7L12 2zM10 9h4v13h-4z" fill="#16a34a" />
-            </svg>
-            <span style={{ fontSize: 7, fontWeight: 700 }}>BASTO</span>
+            <CardFace
+              card={{ id: '1-espada', num: 1, suit: 'espada', power: 14, envidoVal: 1, label: 'Ancho de Espada (El Macho)' }}
+              onClick={soundButton}
+            />
           </div>
           <div className="fan-card fan-center">
-            <span className="fan-num" style={{ color: '#2563eb' }}>1</span>
-            <svg width="32" height="32" viewBox="0 0 24 24">
-              <path d="M12 1l1.8 11h-3.6L12 1zM8 12h8v2.5H8zM11 14.5h2V23h-2z" fill="#2563eb" />
-            </svg>
-            <span className="fan-label">EL MACHO</span>
+            <CardFace
+              card={{ id: '1-basto', num: 1, suit: 'basto', power: 13, envidoVal: 1, label: 'Ancho de Basto' }}
+              onClick={soundButton}
+            />
           </div>
           <div className="fan-card fan-right">
-            <span className="fan-num" style={{ color: '#2563eb' }}>7</span>
-            <svg width="28" height="28" viewBox="0 0 24 24">
-              <path d="M12 1l1.8 11h-3.6L12 1zM8 12h8v2.5H8zM11 14.5h2V23h-2z" fill="#2563eb" />
-            </svg>
-            <span style={{ fontSize: 7, fontWeight: 700 }}>ESPADA</span>
+            <CardFace
+              card={{ id: '7-espada', num: 7, suit: 'espada', power: 12, envidoVal: 7, label: '7 de Espada' }}
+              onClick={soundButton}
+            />
           </div>
         </div>
       </div>
@@ -191,7 +186,7 @@ export default function HomeScreen({
         >
           <div className="menu-icon">🤠</div>
           <div className="menu-text">
-            <strong>Partida vs Bots Criollos</strong>
+            <strong>Partida vs Bots</strong>
             <span>1v1 mano a mano, 2v2 en parejas o 3v3 sexteto</span>
           </div>
           <span className="menu-arrow">➔</span>
@@ -279,7 +274,7 @@ export default function HomeScreen({
                   className={`btn-matchtype ${selectedFormat === '3v3' ? 'active' : ''}`}
                   onClick={() => { soundButton(); setSelectedFormat('3v3'); }}
                 >
-                  🎪 3 vs 3<br /><small style={{ fontSize: 9 }}>Sexteto criollo</small>
+                  🎪 3 vs 3<br /><small style={{ fontSize: 9 }}>Sexteto</small>
                 </button>
               </div>
             </div>
@@ -326,7 +321,7 @@ export default function HomeScreen({
               <button className="btn-close-sheet" onClick={() => setShowIosGuide(false)}>✕</button>
             </div>
             <p className="join-desc" style={{ marginBottom: 12 }}>
-              Podés tener Truco Pro instalado en la pantalla de inicio de tu celular como una app nativa:
+              Podés tener Truco instalado en la pantalla de inicio de tu celular como una app nativa:
             </p>
             <div style={{ background: 'rgba(0,0,0,0.5)', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--wood-border)', marginBottom: 14 }}>
               <div style={{ marginBottom: 10, fontSize: 13 }}>

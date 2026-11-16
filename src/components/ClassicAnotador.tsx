@@ -82,7 +82,7 @@ export default function ClassicAnotador({ onBack }: ClassicAnotadorProps) {
 
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '14px', fontWeight: 900, color: '#f7d56d', letterSpacing: '0.5px' }}>
-              Anotador Criollo
+              Anotador Oficial
             </span>
             <span style={{ fontSize: '10px', color: '#bca182', textTransform: 'uppercase' }}>
               Oficial Xaoxay/truco

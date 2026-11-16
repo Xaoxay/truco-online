@@ -926,7 +926,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       {isDesktop && (
         <aside className="desktop-scoreboard-sidebar">
           <div className="desktop-scoreboard-header">
-            <div className="home-badge" style={{ marginBottom: 6 }}>🇦🇷 ANOTADOR CRIOLLO</div>
+            <div className="home-badge" style={{ marginBottom: 6 }}>🇦🇷 ANOTADOR ARGENTINO</div>
             <h3>Fósforos en Vivo</h3>
             <span className="desktop-goal-text">Partida {matchType} a {config.goal} tantos</span>
           </div>

@@ -133,12 +133,12 @@ body {
   margin-top: 4px;
 }
 
-/* 3D Card Fan Preview */
+/* 3D Card Fan Preview en Portada con Naipes Españoles Auténticos */
 .home-cards-fan {
   position: relative;
-  height: 125px;
+  height: 145px;
   width: 100%;
-  margin: 15px 0 10px;
+  margin: 16px 0 14px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -146,32 +146,53 @@ body {
 
 .fan-card {
   position: absolute;
-  width: 74px;
-  height: 112px;
+  width: 82px;
+  height: 126px;
   border-radius: 8px;
-  background: #fff;
-  border: 2px solid #333;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.7);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px;
-  transition: transform 0.3s;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.home-cards-fan .truco-card-argentina {
+  width: 82px !important;
+  height: 126px !important;
+  opacity: 1 !important;
+  filter: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(0, 0, 0, 0.35) !important;
+  cursor: pointer;
 }
 
 .fan-left {
-  transform: rotate(-18deg) translate(-42px, 8px);
+  transform: rotate(-15deg) translate(-42px, 2px);
+  z-index: 3;
 }
 
 .fan-center {
-  transform: rotate(0deg) translate(0px, -6px);
+  transform: rotate(2deg) translate(0px, -4px);
   z-index: 2;
-  border-color: var(--gold);
 }
 
 .fan-right {
-  transform: rotate(18deg) translate(42px, 8px);
+  transform: rotate(16deg) translate(42px, 8px);
+  z-index: 1;
+}
+
+.fan-card:hover {
+  z-index: 10 !important;
+}
+
+.fan-card:hover .truco-card-argentina {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.8), 0 0 14px rgba(244, 196, 48, 0.45) !important;
+  border-color: var(--gold) !important;
 }
 
 .fan-num {
