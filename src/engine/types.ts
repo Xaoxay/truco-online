@@ -24,7 +24,7 @@ export interface TablePlayer {
   avatar: string;
 }
 
-export type PlayerId = 'player' | 'opponent' | string;
+export type PlayerId = 'player' | 'opponent';
 
 export type TrucoLevel = 'none' | 'truco' | 'retruco' | 'vale4';
 
@@ -43,7 +43,7 @@ export interface TrickCard {
   team?: TeamId;
 }
 
-export type TrickWinner = PlayerId | 'tie' | TeamId;
+export type TrickWinner = PlayerId | 'tie';
 
 export interface Trick {
   cards: TrickCard[];

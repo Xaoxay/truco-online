@@ -216,5 +216,5 @@ export function whoGoesFirst(
   if (trickIndex === 0) return mano;
   const prevTrick = tricks[trickIndex - 1];
   if (!prevTrick || !prevTrick.winner || prevTrick.winner === 'tie') return mano;
-  return prevTrick.winner;
+  return prevTrick.winner as PlayerId;
 }
