@@ -243,8 +243,8 @@ export default function HomeScreen({
 
       {/* Setup Modal for Bots and Pass-and-Play */}
       {setupModal && setupModal.open && (
-        <div className="join-modal-overlay">
-          <div className="join-modal-card">
+        <div className="join-modal-overlay" onClick={() => setSetupModal(null)}>
+          <div className="join-modal-card" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{setupModal.title}</h3>
               <button className="btn-close-modal" onClick={() => setSetupModal(null)}>✕</button>
