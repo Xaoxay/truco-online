@@ -11,12 +11,14 @@ import {
   soundMatchWin,
   soundButton,
 } from '../engine/audio';
-import { dealHands } from '../engine/deck';
+import { dealHands, dealMultiHands } from '../engine/deck';
 import {
   compareTrickCards,
   calculateEnvido,
   hasFlor,
   checkRoundWinner,
+  evaluateTeamTrick,
+  checkTeamRoundWinner,
   canCallEnvido,
   canCallTruco,
   nextTrucoLevel,
@@ -52,6 +54,34 @@ interface PlayedSlot {
 }
 
 export default function GameBoard({ config, network, onExit, isDesktop = false, onToggleLayout }: GameBoardProps) {
+  const matchType = config.matchType || '1v1';
+  const isMulti = matchType === '2v2' || matchType === '3v3';
+
+  const defaultMultiSeats = matchType === '2v2' ? [
+    { seatIndex: 0, name: config.playerName || 'Vos', team: 0 as const, avatar: '🤠', isMe: true },
+    { seatIndex: 1, name: config.opponentName || 'Rival 1', team: 1 as const, avatar: '😎', isMe: false },
+    { seatIndex: 2, name: 'El Chaja (Compañero)', team: 0 as const, avatar: '🤠', isMe: false },
+    { seatIndex: 3, name: 'El Zorro (Rival 2)', team: 1 as const, avatar: '😼', isMe: false },
+  ] : [
+    { seatIndex: 0, name: config.playerName || 'Vos', team: 0 as const, avatar: '🤠', isMe: true },
+    { seatIndex: 1, name: config.opponentName || 'Rival 1', team: 1 as const, avatar: '😎', isMe: false },
+    { seatIndex: 2, name: 'El Chaja (Compañero 1)', team: 0 as const, avatar: '🤠', isMe: false },
+    { seatIndex: 3, name: 'El Zorro (Rival 2)', team: 1 as const, avatar: '😼', isMe: false },
+    { seatIndex: 4, name: 'Martín Fierro (Compañero 2)', team: 0 as const, avatar: '🧉', isMe: false },
+    { seatIndex: 5, name: 'Don Segundo (Rival 3)', team: 1 as const, avatar: '🐎', isMe: false },
+  ];
+
+  const [multiHands, setMultiHands] = useState<CardType[][]>([]);
+  const [currentTurnSeat, setCurrentTurnSeat] = useState(0);
+  const [manoSeat, setManoSeat] = useState(0);
+  const [currentTrickPlays, setCurrentTrickPlays] = useState<{
+    seatIndex: number;
+    team: 0 | 1;
+    card: CardType;
+    playerName: string;
+  }[]>([]);
+  const [multiTrickWinners, setMultiTrickWinners] = useState<(0 | 1 | 'tie')[]>([]);
+
   // Score state
   const [scorePlayer, setScorePlayer] = useState(0);
   const [scoreOpp, setScoreOpp] = useState(0);
@@ -92,13 +122,14 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const key = e.key.toLowerCase();
+      const isMyTurn = isMulti ? currentTurnSeat === 0 : turn === 'player';
 
       // [1], [2], [3] play cards
-      if (key === '1' && playerHand.length >= 1 && turn === 'player' && !pendingCall) {
+      if (key === '1' && playerHand.length >= 1 && isMyTurn && !pendingCall) {
         handlePlayCard(0);
-      } else if (key === '2' && playerHand.length >= 2 && turn === 'player' && !pendingCall) {
+      } else if (key === '2' && playerHand.length >= 2 && isMyTurn && !pendingCall) {
         handlePlayCard(1);
-      } else if (key === '3' && playerHand.length >= 3 && turn === 'player' && !pendingCall) {
+      } else if (key === '3' && playerHand.length >= 3 && isMyTurn && !pendingCall) {
         handlePlayCard(2);
       }
       // [E] Envido
@@ -154,6 +185,144 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     setTimeout(() => setSpeechText(null), 2800);
   };
 
+  // ─── Multi-Player (2v2 and 3v3) Game Engine ───────────────────
+  const startNewRoundMulti = (nextManoSeat: number) => {
+    const seatCount = defaultMultiSeats.length;
+    const hands = dealMultiHands(seatCount);
+    setPlayerHand(hands[0]);
+    setMultiHands(hands);
+    setCurrentTrick(0);
+    setCurrentTrickPlays([]);
+    setMultiTrickWinners([]);
+    setPendingCall(null);
+    setTrucoLevel('none');
+    setTrucoCaller(null);
+    setEnvidoPlayed(false);
+    setFirstCardPlayed(false);
+    setManoSeat(nextManoSeat);
+    setCurrentTurnSeat(nextManoSeat);
+
+    soundWinRound();
+    showToast(`¡Nueva mano (${matchType}) repartida para ${seatCount} gauchos!`);
+
+    if (nextManoSeat !== 0) {
+      setTimeout(() => runMultiBotTurn(nextManoSeat, hands, 0, []), 900);
+    }
+  };
+
+  const runMultiBotTurn = (
+    seatIdx: number,
+    curHands: CardType[][],
+    trickIdx: number,
+    existingPlays: { seatIndex: number; team: 0 | 1; card: CardType; playerName: string }[]
+  ) => {
+    const botHand = curHands[seatIdx];
+    if (!botHand || botHand.length === 0) return;
+
+    // Bot chooses a card
+    const cardIndex = Math.floor(Math.random() * botHand.length);
+    const card = botHand[cardIndex];
+    const newHand = botHand.filter((_, i) => i !== cardIndex);
+
+    const updatedHands = [...curHands];
+    updatedHands[seatIdx] = newHand;
+    setMultiHands(updatedHands);
+
+    soundCardPlay();
+    const seatInfo = defaultMultiSeats[seatIdx];
+    const play = {
+      seatIndex: seatIdx,
+      team: seatInfo.team,
+      card,
+      playerName: seatInfo.name,
+    };
+    const updatedPlays = [...existingPlays, play];
+    setCurrentTrickPlays(updatedPlays);
+
+    const seatCount = defaultMultiSeats.length;
+    if (updatedPlays.length === seatCount) {
+      setTimeout(() => resolveMultiTrick(updatedPlays, trickIdx, updatedHands), 800);
+    } else {
+      const nextSeat = (seatIdx + 1) % seatCount;
+      setCurrentTurnSeat(nextSeat);
+      if (nextSeat !== 0) {
+        setTimeout(() => runMultiBotTurn(nextSeat, updatedHands, trickIdx, updatedPlays), 900);
+      }
+    }
+  };
+
+  const resolveMultiTrick = (
+    plays: { seatIndex: number; team: 0 | 1; card: CardType; playerName: string }[],
+    trickIdx: number,
+    curHands: CardType[][]
+  ) => {
+    const result = evaluateTeamTrick(plays);
+    const updatedWinners = [...multiTrickWinners, result.winnerTeam];
+    setMultiTrickWinners(updatedWinners);
+
+    if (result.winnerTeam === 0) {
+      soundWinRound();
+      showToast(`¡Ganamos la ${trickIdx + 1}ª mano con ${result.winningPlay?.card.label}!`);
+    } else if (result.winnerTeam === 1) {
+      showToast(`Ellos ganaron la ${trickIdx + 1}ª mano con ${result.winningPlay?.card.label}`);
+    } else {
+      showToast(`¡Parda en la ${trickIdx + 1}ª mano!`);
+    }
+
+    const manoTeam = defaultMultiSeats[manoSeat].team;
+    const roundWinner = checkTeamRoundWinner(updatedWinners, manoTeam);
+
+    if (roundWinner !== null) {
+      setTimeout(() => finishMultiRound(roundWinner), 1200);
+    } else {
+      const nextTrickIdx = trickIdx + 1;
+      setCurrentTrick(nextTrickIdx);
+      setCurrentTrickPlays([]);
+
+      const nextLeader = result.winningPlay ? result.winningPlay.seatIndex : manoSeat;
+      setCurrentTurnSeat(nextLeader);
+
+      if (nextLeader !== 0) {
+        setTimeout(() => runMultiBotTurn(nextLeader, curHands, nextTrickIdx, []), 900);
+      }
+    }
+  };
+
+  const finishMultiRound = (winnerTeam: 0 | 1) => {
+    const pts = trucoWinPoints(trucoLevel);
+    let newP = scorePlayer;
+    let newO = scoreOpp;
+
+    if (winnerTeam === 0) {
+      newP += pts;
+      setScorePlayer(newP);
+      soundWinRound();
+      showToast(`¡Nosotros nos llevamos la mano! (+${pts} tantos)`);
+    } else {
+      newO += pts;
+      setScoreOpp(newO);
+      soundLoseRound();
+      showToast(`Ellos se llevan la mano (+${pts} tantos)`);
+    }
+
+    if (newP >= config.goal) {
+      soundMatchWin();
+      setMatchWinner('player');
+      return;
+    }
+    if (newO >= config.goal) {
+      soundLoseRound();
+      setMatchWinner('opponent');
+      return;
+    }
+
+    const seatCount = defaultMultiSeats.length;
+    const nextMano = (manoSeat + 1) % seatCount;
+    setTimeout(() => {
+      startNewRoundMulti(nextMano);
+    }, 1800);
+  };
+
   // ─── Start a new round ──────────────────────────────────────────
   const startNewRound = (nextMano: PlayerId) => {
     const { playerHand: pHand, opponentHand: oHand } = dealHands();
@@ -200,6 +369,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   // Initialize first round on mount
   useEffect(() => {
+    if (isMulti) {
+      startNewRoundMulti(0);
+      return;
+    }
     if (config.mode === 'online' && network && !network.isHost) {
       // Guest waits for START_ROUND from host
       return;
@@ -261,6 +434,34 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   // ─── Playing a card ─────────────────────────────────────────────
   const handlePlayCard = (index: number) => {
+    if (isMulti) {
+      if (currentTurnSeat !== 0 || pendingCall !== null || currentTrick >= 3) return;
+      soundCardPlay();
+      const card = playerHand[index];
+      const newHand = playerHand.filter((_, i) => i !== index);
+      setPlayerHand(newHand);
+      setFirstCardPlayed(true);
+
+      const play = {
+        seatIndex: 0,
+        team: 0 as const,
+        card,
+        playerName: config.playerName || 'Vos',
+      };
+      const updatedPlays = [...currentTrickPlays, play];
+      setCurrentTrickPlays(updatedPlays);
+
+      const seatCount = defaultMultiSeats.length;
+      if (updatedPlays.length === seatCount) {
+        setTimeout(() => resolveMultiTrick(updatedPlays, currentTrick, multiHands), 800);
+      } else {
+        const nextSeat = 1;
+        setCurrentTurnSeat(nextSeat);
+        setTimeout(() => runMultiBotTurn(nextSeat, multiHands, currentTrick, updatedPlays), 900);
+      }
+      return;
+    }
+
     if (turn !== 'player' || pendingCall !== null || currentTrick >= 3) return;
 
     soundCardPlay();
@@ -630,6 +831,13 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   const handleSendSena = (sena: string) => {
     soundButton();
+    if (isMulti) {
+      showToast(`Le hiciste la seña: ${sena} a tu compañero`);
+      setTimeout(() => {
+        showSpeech('😉 ¡Entendido compa, vamos por ellos!');
+      }, 1000);
+      return;
+    }
     showToast(`Hiciste la seña: ${sena}`);
     if (config.mode === 'online' && network) {
       network.sendMessage({ type: 'SENA', sena });
@@ -652,12 +860,12 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           <div className="desktop-scoreboard-header">
             <div className="home-badge" style={{ marginBottom: 6 }}>🇦🇷 ANOTADOR CRIOLLO</div>
             <h3>Fósforos en Vivo</h3>
-            <span className="desktop-goal-text">Partida a {config.goal} tantos</span>
+            <span className="desktop-goal-text">Partida {matchType} a {config.goal} tantos</span>
           </div>
 
           <div className="desktop-stick-cols">
             <div className="desktop-stick-col">
-              <div className="desktop-stick-name">{config.playerName}</div>
+              <div className="desktop-stick-name">{isMulti ? 'Nosotros' : config.playerName}</div>
               <div className="desktop-stick-pts">{scorePlayer}</div>
               <PhaseDisplay
                 label={config.goal === 30 ? 'Malas' : 'Tantos'}
@@ -678,7 +886,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             <div className="desktop-stick-divider" />
 
             <div className="desktop-stick-col">
-              <div className="desktop-stick-name">{config.opponentName}</div>
+              <div className="desktop-stick-name">{isMulti ? 'Ellos' : config.opponentName}</div>
               <div className="desktop-stick-pts">{scoreOpp}</div>
               <PhaseDisplay
                 label={config.goal === 30 ? 'Malas' : 'Tantos'}
@@ -714,19 +922,19 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         <div className="game-hud">
           <div className="anotador-mini" onClick={() => setScoreSheetOpen(true)}>
             <div className="score-team">
-              <span className="team-lbl">{config.playerName}</span>
+              <span className="team-lbl">{isMulti ? 'Nosotros' : config.playerName}</span>
               <span className="team-pts">{scorePlayer}</span>
             </div>
             <div className="score-divider"></div>
             <div className="score-team">
-              <span className="team-lbl">{config.opponentName}</span>
+              <span className="team-lbl">{isMulti ? 'Ellos' : config.opponentName}</span>
               <span className="team-pts">{scoreOpp}</span>
             </div>
             <span style={{ fontSize: 13, color: 'var(--gold)' }}>📋</span>
           </div>
 
           <div className="round-info-pill">
-            Mano {currentTrick + 1} • A {config.goal} pts {trucoLevel !== 'none' && `• ${trucoLevel.toUpperCase()}`}
+            Mano {currentTrick + 1} • {matchType.toUpperCase()} • A {config.goal} pts {trucoLevel !== 'none' && `• ${trucoLevel.toUpperCase()}`}
           </div>
 
           <div className="hud-actions-right">
@@ -745,43 +953,120 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           </div>
         </div>
 
-        {/* Opponent Area */}
-        <div className="opponent-area">
-          <div className="opponent-badge">
-            <span className="opponent-avatar">
-              {config.mode === 'bot' ? '🤠' : '😎'}
-            </span>
-            <span className="opponent-name">{config.opponentName}</span>
-            {turn === 'opponent' && <span className="turn-indicator-pulse"></span>}
-          </div>
+        {/* Center Felt / Table Area */}
+        {isMulti ? (
+          <div className="table-felt-multi">
+            {speechText && <div className="speech-bubble active" style={{ top: 20 }}>{speechText}</div>}
 
-          {/* Speech Balloon */}
-          {speechText && <div className="speech-bubble active">{speechText}</div>}
-
-          {/* Opponent Hand (Card backs) */}
-          <div className="opponent-hand">
-            {Array.from({ length: oppCardsCount }).map((_, idx) => (
-              <CardBack key={idx} small />
-            ))}
-          </div>
-        </div>
-
-        {/* The Felt Table (Center) */}
-        <div className="felt-center">
-          <div className="trick-slots-container">
-            {tricks.map((trick, idx) => (
-              <div key={idx} className="trick-column">
-                <span className="trick-label">{idx + 1}ª</span>
-                <div className="trick-slot-opp">
-                  {trick.oppCard && <CardFace card={trick.oppCard} small disabled />}
+            {/* Top Row: Partner (in 2v2) or Partners/Rivals (in 3v3) */}
+            <div className="table-row-top">
+              {matchType === '2v2' ? (
+                <div className={`seat-chip team-0 ${currentTurnSeat === 2 ? 'current-turn' : ''}`}>
+                  <span className="seat-avatar">🤠</span>
+                  <span className="seat-name">El Chaja (Compañero)</span>
+                  <span className="seat-card-count">🃏 {multiHands[2]?.length ?? 3}</span>
+                  {currentTurnSeat === 2 && <span className="turn-indicator-pulse"></span>}
                 </div>
-                <div className="trick-slot-me">
-                  {trick.playerCard && <CardFace card={trick.playerCard} small disabled />}
-                </div>
+              ) : (
+                <>
+                  <div className={`seat-chip team-0 ${currentTurnSeat === 2 ? 'current-turn' : ''}`}>
+                    <span className="seat-avatar">🤠</span>
+                    <span className="seat-name">El Chaja (Compañero 1)</span>
+                    <span className="seat-card-count">🃏 {multiHands[2]?.length ?? 3}</span>
+                    {currentTurnSeat === 2 && <span className="turn-indicator-pulse"></span>}
+                  </div>
+                  <div className={`seat-chip team-1 ${currentTurnSeat === 3 ? 'current-turn' : ''}`}>
+                    <span className="seat-avatar">😼</span>
+                    <span className="seat-name">El Zorro (Rival 2)</span>
+                    <span className="seat-card-count">🃏 {multiHands[3]?.length ?? 3}</span>
+                    {currentTurnSeat === 3 && <span className="turn-indicator-pulse"></span>}
+                  </div>
+                  <div className={`seat-chip team-0 ${currentTurnSeat === 4 ? 'current-turn' : ''}`}>
+                    <span className="seat-avatar">🧉</span>
+                    <span className="seat-name">Martín Fierro (Compañero 2)</span>
+                    <span className="seat-card-count">🃏 {multiHands[4]?.length ?? 3}</span>
+                    {currentTurnSeat === 4 && <span className="turn-indicator-pulse"></span>}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Middle Row: Left Rival, Center Cards, Right Rival */}
+            <div className="table-row-middle">
+              <div className={`seat-chip team-1 ${currentTurnSeat === 1 ? 'current-turn' : ''}`}>
+                <span className="seat-avatar">😎</span>
+                <span className="seat-name">{config.opponentName || 'Rival 1'}</span>
+                <span className="seat-card-count">🃏 {multiHands[1]?.length ?? 3}</span>
+                {currentTurnSeat === 1 && <span className="turn-indicator-pulse"></span>}
               </div>
-            ))}
+
+              {/* Cards played in this trick */}
+              <div className="table-center-felt-cards">
+                {currentTrickPlays.length === 0 ? (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+                    Mesa {currentTrick + 1}ª Mano ({matchType})
+                  </span>
+                ) : (
+                  currentTrickPlays.map((p, idx) => (
+                    <div key={idx} className="multi-played-card">
+                      <span className={`card-owner-tag team-${p.team}`}>
+                        {p.playerName.split(' ')[0]}
+                      </span>
+                      <CardFace card={p.card} small disabled />
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className={`seat-chip team-1 ${currentTurnSeat === (matchType === '2v2' ? 3 : 5) ? 'current-turn' : ''}`}>
+                <span className="seat-avatar">🐎</span>
+                <span className="seat-name">{matchType === '2v2' ? 'El Zorro' : 'Don Segundo'}</span>
+                <span className="seat-card-count">🃏 {multiHands[matchType === '2v2' ? 3 : 5]?.length ?? 3}</span>
+                {currentTurnSeat === (matchType === '2v2' ? 3 : 5) && <span className="turn-indicator-pulse"></span>}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Opponent Area */}
+            <div className="opponent-area">
+              <div className="opponent-badge">
+                <span className="opponent-avatar">
+                  {config.mode === 'bot' ? '🤠' : '😎'}
+                </span>
+                <span className="opponent-name">{config.opponentName}</span>
+                {turn === 'opponent' && <span className="turn-indicator-pulse"></span>}
+              </div>
+
+              {/* Speech Balloon */}
+              {speechText && <div className="speech-bubble active">{speechText}</div>}
+
+              {/* Opponent Hand (Card backs) */}
+              <div className="opponent-hand">
+                {Array.from({ length: oppCardsCount }).map((_, idx) => (
+                  <CardBack key={idx} small />
+                ))}
+              </div>
+            </div>
+
+            {/* The Felt Table (Center) */}
+            <div className="felt-center">
+              <div className="trick-slots-container">
+                {tricks.map((trick, idx) => (
+                  <div key={idx} className="trick-column">
+                    <span className="trick-label">{idx + 1}ª</span>
+                    <div className="trick-slot-opp">
+                      {trick.oppCard && <CardFace card={trick.oppCard} small disabled />}
+                    </div>
+                    <div className="trick-slot-me">
+                      {trick.playerCard && <CardFace card={trick.playerCard} small disabled />}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Player Area (Bottom) */}
         <div className="player-area">
@@ -865,7 +1150,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                 <CardFace
                   card={card}
                   onClick={() => handlePlayCard(idx)}
-                  disabled={turn !== 'player' || pendingCall !== null}
+                  disabled={isMulti ? currentTurnSeat !== 0 || pendingCall !== null : turn !== 'player' || pendingCall !== null}
                 />
               </div>
             ))}

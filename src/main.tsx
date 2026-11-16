@@ -187,8 +187,10 @@ function MainApp() {
           peerName={peerName}
           goal={config.goal}
           withFlor={config.withFlor}
+          matchType={config.matchType || '1v1'}
           onSetGoal={g => setConfig(prev => ({ ...prev, goal: g }))}
           onSetFlor={f => setConfig(prev => ({ ...prev, withFlor: f }))}
+          onSetMatchType={m => setConfig(prev => ({ ...prev, matchType: m }))}
           onStartMatch={handleHostStartMatch}
           onCancel={handleCancelOnline}
         />

@@ -197,6 +197,91 @@ export function canCallTruco(round: RoundState, caller: PlayerId): boolean {
   return true;
 }
 
+// ─── Team / Multi-player (2v2 and 3v3) Trick Evaluation ─────────
+
+export interface TeamCardPlay {
+  seatIndex: number;
+  team: 0 | 1;
+  card: Card;
+  playerName: string;
+}
+
+/**
+ * Compare played cards in 2v2 or 3v3 trick.
+ * The team that played the single highest card wins.
+ * If two teammates share highest card, their team wins.
+ * If opposing teams tie for highest card, it's 'tie' (Parda).
+ */
+export function evaluateTeamTrick(
+  plays: TeamCardPlay[]
+): { winnerTeam: 0 | 1 | 'tie'; winningPlay: TeamCardPlay | null } {
+  if (plays.length === 0) return { winnerTeam: 'tie', winningPlay: null };
+
+  let maxPower = -1;
+  plays.forEach(p => {
+    if (p.card.power > maxPower) maxPower = p.card.power;
+  });
+
+  const highestPlays = plays.filter(p => p.card.power === maxPower);
+  if (highestPlays.length === 1) {
+    return { winnerTeam: highestPlays[0].team, winningPlay: highestPlays[0] };
+  }
+
+  const teamsWithMax = new Set(highestPlays.map(p => p.team));
+  if (teamsWithMax.size === 1) {
+    // Teammates tied each other: their team wins the trick!
+    return { winnerTeam: highestPlays[0].team, winningPlay: highestPlays[0] };
+  }
+
+  // Rivals tied with same highest card: PARDA
+  return { winnerTeam: 'tie', winningPlay: highestPlays[0] };
+}
+
+/**
+ * Check round winner in 2v2 / 3v3 team matches (best of 3 with parda rules)
+ */
+export function checkTeamRoundWinner(
+  trickWinners: (0 | 1 | 'tie')[],
+  manoTeam: 0 | 1
+): 0 | 1 | null {
+  const results = trickWinners.filter(w => w !== null && w !== undefined);
+  if (results.length === 0) return null;
+
+  const [r1, r2, r3] = results;
+  const t0Wins = results.filter(r => r === 0).length;
+  const t1Wins = results.filter(r => r === 1).length;
+
+  if (t0Wins >= 2) return 0;
+  if (t1Wins >= 2) return 1;
+
+  if (results.length < 2) return null;
+
+  if (r1 === 'tie') {
+    if (r2 === 0) return 0;
+    if (r2 === 1) return 1;
+    if (results.length >= 3) {
+      if (r3 === 0) return 0;
+      if (r3 === 1) return 1;
+      return manoTeam;
+    }
+    return null;
+  }
+
+  if (results.length >= 2) {
+    if (r2 === 'tie') return r1 as (0 | 1);
+    if (r1 !== r2 && results.length < 3) return null;
+    if (results.length >= 3 && r3 === 'tie') return r1 as (0 | 1);
+  }
+
+  if (results.length >= 3) {
+    if (t0Wins > t1Wins) return 0;
+    if (t1Wins > t0Wins) return 1;
+    return manoTeam;
+  }
+
+  return null;
+}
+
 /** Get next truco escalation level */
 export function nextTrucoLevel(current: TrucoLevel): TrucoLevel | null {
   switch (current) {

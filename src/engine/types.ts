@@ -115,6 +115,7 @@ export interface RoomConfig {
   mode: 'bot' | 'local' | 'online';
   playerName: string;
   opponentName: string;
+  matchType?: MatchType;
 }
 
 export function otherPlayer(p: PlayerId): PlayerId {

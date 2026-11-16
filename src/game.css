@@ -1486,3 +1486,168 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   font-size: 13px;
 }
 
+/* Multi-player (1v1, 2v2, 3v3) Table and Lobby styling */
+.matchtype-buttons-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-matchtype {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn-matchtype.active {
+  background: linear-gradient(135deg, rgba(244,196,48,0.25), rgba(184,134,11,0.4));
+  border-color: var(--gold);
+  color: var(--gold-light);
+  box-shadow: 0 0 12px rgba(244,196,48,0.3);
+}
+
+.section-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.fill-bots-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--gold-light);
+  cursor: pointer;
+}
+
+/* Multi-player Table Seats around Felt */
+.table-felt-multi {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 520px;
+  min-height: 250px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+}
+
+.table-row-top {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  z-index: 4;
+}
+
+.table-row-middle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  position: relative;
+  z-index: 3;
+}
+
+.table-center-felt-cards {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1.5px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 8px;
+  min-width: 180px;
+  min-height: 110px;
+}
+
+.seat-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.seat-chip.team-0 {
+  border-color: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.seat-chip.team-1 {
+  border-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+.seat-chip.current-turn {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 12px #22c55e !important;
+  transform: scale(1.05);
+}
+
+.seat-avatar {
+  font-size: 14px;
+}
+
+.seat-name {
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seat-card-count {
+  font-size: 10px;
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.multi-played-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.card-owner-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.7);
+}
+
+.card-owner-tag.team-0 {
+  color: #60a5fa;
+}
+
+.card-owner-tag.team-1 {
+  color: #f87171;
+}
+

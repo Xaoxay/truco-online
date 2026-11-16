@@ -1,6 +1,6 @@
 // ─── Home Screen Component with Room Management ────────────────
 import React, { useState } from 'react';
-import type { RoomConfig } from '../engine/types';
+import type { RoomConfig, MatchType } from '../engine/types';
 import { soundButton } from '../engine/audio';
 
 interface HomeScreenProps {
@@ -21,27 +21,30 @@ export default function HomeScreen({
   onToggleDesktop,
 }: HomeScreenProps) {
   const [playerName, setPlayerName] = useState('Vos');
+  const [setupModal, setSetupModal] = useState<{
+    open: boolean;
+    mode: 'bot' | 'local';
+    title: string;
+  } | null>(null);
 
-  const quickPlay = (goal: 15 | 30) => {
+  const [selectedFormat, setSelectedFormat] = useState<MatchType>('1v1');
+  const [selectedGoal, setSelectedGoal] = useState<15 | 30>(15);
+  const [withFlor, setWithFlor] = useState(false);
+
+  const handleLaunchGame = () => {
     soundButton();
+    if (!setupModal) return;
+
+    const isBot = setupModal.mode === 'bot';
     onStartGame({
-      goal,
-      withFlor: false,
-      mode: 'bot',
+      goal: selectedGoal,
+      withFlor,
+      mode: setupModal.mode,
+      matchType: selectedFormat,
       playerName: playerName.trim() || 'Vos',
-      opponentName: 'Don Florencio',
+      opponentName: isBot ? 'Don Florencio' : 'Rival',
     });
-  };
-
-  const playPassAndPlay = () => {
-    soundButton();
-    onStartGame({
-      goal: 15,
-      withFlor: false,
-      mode: 'local',
-      playerName: 'Jugador 1',
-      opponentName: 'Jugador 2',
-    });
+    setSetupModal(null);
   };
 
   return (
@@ -113,7 +116,7 @@ export default function HomeScreen({
         >
           <div className="menu-icon">🌐</div>
           <div className="menu-text">
-            <strong>Crear Sala Online</strong>
+            <strong>Crear Sala Online (1v1, 2v2, 3v3)</strong>
             <span>Generá un código o link para jugar con amigos</span>
           </div>
           <span className="menu-arrow">➔</span>
@@ -135,22 +138,42 @@ export default function HomeScreen({
           <span className="menu-arrow">➔</span>
         </button>
 
-        {/* Local Pass and Play */}
-        <button className="menu-btn" onClick={playPassAndPlay}>
-          <div className="menu-icon">📱</div>
+        {/* Solo vs Bot */}
+        <button
+          className="menu-btn"
+          onClick={() => {
+            soundButton();
+            setSetupModal({
+              open: true,
+              mode: 'bot',
+              title: 'Jugar vs Bots (1v1, 2v2, 3v3)',
+            });
+          }}
+        >
+          <div className="menu-icon">🤠</div>
           <div className="menu-text">
-            <strong>Pasa y Juega (Local)</strong>
-            <span>2 personas en este mismo celular (sin internet)</span>
+            <strong>Partida vs Bots Criollos</strong>
+            <span>1v1 mano a mano, 2v2 en parejas o 3v3 sexteto</span>
           </div>
           <span className="menu-arrow">➔</span>
         </button>
 
-        {/* Solo vs Bot */}
-        <button className="menu-btn" onClick={() => quickPlay(15)}>
-          <div className="menu-icon">🤠</div>
+        {/* Local Pass and Play */}
+        <button
+          className="menu-btn"
+          onClick={() => {
+            soundButton();
+            setSetupModal({
+              open: true,
+              mode: 'local',
+              title: 'Pasa y Juega en este Celular',
+            });
+          }}
+        >
+          <div className="menu-icon">📱</div>
           <div className="menu-text">
-            <strong>Partida vs Bot (Don Florencio)</strong>
-            <span>Practicá tus señas y cantos offline</span>
+            <strong>Pasa y Juega (Local)</strong>
+            <span>Sin internet, pasando el celu entre amigos</span>
           </div>
           <span className="menu-arrow">➔</span>
         </button>
@@ -176,6 +199,72 @@ export default function HomeScreen({
         <span>⚡ Versión Web & Móvil PWA</span>
         <span>iPhone • Android • PC</span>
       </div>
+
+      {/* Setup Modal for Bots and Pass-and-Play */}
+      {setupModal && setupModal.open && (
+        <div className="join-modal-overlay">
+          <div className="join-modal-card">
+            <div className="modal-header">
+              <h3>{setupModal.title}</h3>
+              <button className="btn-close-modal" onClick={() => setSetupModal(null)}>✕</button>
+            </div>
+
+            <div className="setup-section" style={{ marginTop: 12 }}>
+              <div className="section-label" style={{ marginBottom: 6 }}>Modalidad de Partida</div>
+              <div className="matchtype-buttons-row">
+                <button
+                  className={`btn-matchtype ${selectedFormat === '1v1' ? 'active' : ''}`}
+                  onClick={() => { soundButton(); setSelectedFormat('1v1'); }}
+                >
+                  ⚔️ 1 vs 1<br /><small style={{ fontSize: 9 }}>Mano a mano</small>
+                </button>
+                <button
+                  className={`btn-matchtype ${selectedFormat === '2v2' ? 'active' : ''}`}
+                  onClick={() => { soundButton(); setSelectedFormat('2v2'); }}
+                >
+                  👥 2 vs 2<br /><small style={{ fontSize: 9 }}>En parejas</small>
+                </button>
+                <button
+                  className={`btn-matchtype ${selectedFormat === '3v3' ? 'active' : ''}`}
+                  onClick={() => { soundButton(); setSelectedFormat('3v3'); }}
+                >
+                  🎪 3 vs 3<br /><small style={{ fontSize: 9 }}>Sexteto criollo</small>
+                </button>
+              </div>
+            </div>
+
+            <div className="setup-section" style={{ marginTop: 14 }}>
+              <div className="section-label" style={{ marginBottom: 6 }}>Objetivo de Tantos</div>
+              <div className="option-grid">
+                <div
+                  className={`option-card ${selectedGoal === 15 ? 'selected' : ''}`}
+                  onClick={() => { soundButton(); setSelectedGoal(15); }}
+                >
+                  <div className="opt-emoji">⚡</div>
+                  <div className="opt-name">A 15 Tantos</div>
+                  <div className="opt-sub">Partida rápida</div>
+                </div>
+                <div
+                  className={`option-card ${selectedGoal === 30 ? 'selected' : ''}`}
+                  onClick={() => { soundButton(); setSelectedGoal(30); }}
+                >
+                  <div className="opt-emoji">🏆</div>
+                  <div className="opt-name">A 30 Tantos</div>
+                  <div className="opt-sub">Malas y Buenas</div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              className="btn-primary-action full-width"
+              style={{ marginTop: 18 }}
+              onClick={handleLaunchGame}
+            >
+              ¡A las Barajas! 🃏
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

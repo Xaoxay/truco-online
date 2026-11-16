@@ -101,3 +101,13 @@ export function dealHands(): { playerHand: Card[]; opponentHand: Card[] } {
     opponentHand: deal(s, 3, 3),
   };
 }
+
+/** Deal N hands of 3 cards each (e.g. 4 for 2v2, 6 for 3v3) */
+export function dealMultiHands(playerCount: number): Card[][] {
+  const s = shuffle(FULL_DECK);
+  const hands: Card[][] = [];
+  for (let i = 0; i < playerCount; i++) {
+    hands.push(s.slice(i * 3, i * 3 + 3));
+  }
+  return hands;
+}
