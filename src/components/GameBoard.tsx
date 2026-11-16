@@ -184,6 +184,18 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const [firstCardPlayed, setFirstCardPlayedState] = useState(false);
   const setFirstCardPlayed = (v: boolean) => { firstCardPlayedRef.current = v; setFirstCardPlayedState(v); };
 
+  // Modal para mostrar la comparativa completa de Envido con ambos tantos
+  const [envidoModal, setEnvidoModal] = useState<{
+    pEnvido: number;
+    oEnvido: number;
+    winnerTeam: 'player' | 'opponent';
+    pts: number;
+    callType: string;
+    reason: string;
+    isMano: boolean;
+  } | null>(null);
+  const envidoModalTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   // UI speech & alerts
   const [speechText, setSpeechText] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -363,6 +375,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     remoteEnvidoRef.current = null;
     pendingEnvidoRef.current = null;
     roundEndedRef.current = false;
+    if (envidoModalTimerRef.current) clearTimeout(envidoModalTimerRef.current);
+    setEnvidoModal(null);
   };
 
   // ─── Multi-Player (2v2 and 3v3) Game Engine ───────────────────
@@ -373,8 +387,12 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     resetRoundState();
     multiInitialHandsRef.current = hands.map(h => [...h]);
     initialPlayerHandRef.current = hands[0];
+    initialOppHandRef.current = hands[1] ? [...hands[1]] : [];
     setInitialPlayerHand(hands[0]);
+    setInitialOppHand(hands[1] ? [...hands[1]] : []);
     setPlayerHand(hands[0]);
+    setOppHandCards(hands[1] ? [...hands[1]] : []);
+    setOppCardsCount(3);
     setMultiHands(hands);
     setCurrentTrickPlays([]);
     setMultiTrickWinners([]);
@@ -596,6 +614,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
+      if (envidoModalTimerRef.current) clearTimeout(envidoModalTimerRef.current);
     };
   }, []);
 
@@ -1089,8 +1108,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   /** Reparte los tantos del envido cuando ya se conocen los puntos de ambos. */
   const settleEnvido = (callType: string, pEnvido: number, oEnvido: number) => {
     remoteEnvidoRef.current = null;
-    const isPlayerMano = manoRef.current === 'player';
-    const playerWins = pEnvido > oEnvido || (pEnvido === oEnvido && isPlayerMano);
+    pendingEnvidoRef.current = null;
+
+    // Determinar Mano: en multi depende del asiento repartidor; en 1v1 de manoRef
+    const isPlayerTeamMano = isMulti
+      ? defaultMultiSeats[manoSeatRef.current]?.team === 0
+      : manoRef.current === 'player';
+
+    // Regla Oficial: gana el que tenga más tantos; en caso de empate gana la Mano
+    const playerWins = pEnvido > oEnvido || (pEnvido === oEnvido && isPlayerTeamMano);
 
     let pts = envidoQuieroPoints(callType);
     if (callType === 'falta_envido') {
@@ -1098,47 +1124,58 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       pts = playerWins ? faltaEnvidoPoints(p, o, config.goal) : faltaEnvidoPoints(o, p, config.goal);
     }
 
-    // Los tantos se suman YA (con refs); solo los mensajes se muestran con demora
+    // Los tantos se suman inmediatamente
     const ended = addScore(playerWins ? 'player' : 'opponent', pts);
 
-    if (isPlayerMano) {
-      showToast(`Vos (Mano): ¡${pEnvido} de Envido!`);
-      later(() => {
-        if (playerWins) {
-          showSpeech(`¡Son buenas! (Tengo ${oEnvido})`);
-          showToast(`¡Ganaste el Envido (${pEnvido} a ${oEnvido})! (+${pts} tantos)`);
-          soundWinRound();
-        } else {
-          showSpeech(`¡${oEnvido} son mejores!`);
-          showToast(`${config.opponentName} ganó el Envido con ${oEnvido} tantos (+${pts})`);
-        }
-      }, 1100);
+    const pLabel = isMulti ? 'Nosotros' : (config.playerName || 'Vos');
+    const oLabel = isMulti ? 'Ellos' : (config.opponentName || 'Rival');
+
+    const reason = pEnvido === oEnvido
+      ? `Empate en ${pEnvido} tantos. Gana ${playerWins ? pLabel : oLabel} por ser Mano.`
+      : `${Math.max(pEnvido, oEnvido)} tantos supera a ${Math.min(pEnvido, oEnvido)} tantos.`;
+
+    // Modal visual interactivo que muestra los tantos de ambos lados
+    if (envidoModalTimerRef.current) clearTimeout(envidoModalTimerRef.current);
+    setEnvidoModal({
+      pEnvido,
+      oEnvido,
+      winnerTeam: playerWins ? 'player' : 'opponent',
+      pts,
+      callType,
+      reason,
+      isMano: isPlayerTeamMano,
+    });
+    envidoModalTimerRef.current = setTimeout(() => {
+      setEnvidoModal(null);
+    }, 4500);
+
+    // Diálogo y notificación explícita mostrando ambos puntajes
+    if (playerWins) {
+      soundWinRound();
+      showToast(`¡Envido: ${pLabel} ${pEnvido} vs ${oLabel} ${oEnvido}! Ganó ${pLabel} (+${pts} tantos)`);
+      showSpeech(isPlayerTeamMano ? `¡${pEnvido} de Envido!` : `¡Son buenas! (Tengo ${oEnvido})`);
     } else {
-      showSpeech(`¡${oEnvido} de Envido!`);
-      later(() => {
-        if (playerWins) {
-          showToast(`¡${pEnvido} son mejores! Ganaste el Envido (+${pts} tantos)`);
-          soundWinRound();
-        } else {
-          showToast(`Son buenas (${config.opponentName} se lleva ${pts} tantos)`);
-        }
-      }, 1100);
+      showToast(`Envido: ${pLabel} ${pEnvido} vs ${oLabel} ${oEnvido} — Ganó ${oLabel} (+${pts} tantos)`);
+      showSpeech(`¡${oEnvido} son mejores!`);
     }
+
     return ended;
   };
 
   const resolveEnvidoQuiero = (callType: string) => {
     if (isMulti) {
-      const team0Hands = multiInitialHandsRef.current.filter((_, idx) => idx % 2 === 0 && _.length > 0);
-      const team1Hands = multiInitialHandsRef.current.filter((_, idx) => idx % 2 === 1 && _.length > 0);
-      const team0Pts = team0Hands.length ? Math.max(...team0Hands.map(calculateEnvido)) : myEnvidoNow();
-      const team1Pts = team1Hands.length ? Math.max(...team1Hands.map(calculateEnvido)) : 0;
+      const team0Hands = multiInitialHandsRef.current.filter((_, idx) => idx % 2 === 0);
+      const team1Hands = multiInitialHandsRef.current.filter((_, idx) => idx % 2 === 1);
+      const team0Pts = team0Hands.length > 0 ? Math.max(...team0Hands.map(calculateEnvido)) : myEnvidoNow();
+      const team1Pts = team1Hands.length > 0
+        ? Math.max(...team1Hands.map(calculateEnvido))
+        : (initialOppHandRef.current.length > 0 ? calculateEnvido(initialOppHandRef.current) : 20);
       settleEnvido(callType, team0Pts, team1Pts);
       return;
     }
     const myPts = myEnvidoNow();
     if (config.mode === 'online' && network) {
-      // Cada lado manda sus puntos y espera los del otro: así no importa quién llegue primero
+      // Cada lado manda sus puntos y espera los del otro
       network.sendMessage({ type: 'ENVIDO_POINTS', points: myPts });
       if (remoteEnvidoRef.current === null) {
         pendingEnvidoRef.current = callType;
@@ -1147,9 +1184,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       settleEnvido(callType, myPts, remoteEnvidoRef.current);
       return;
     }
-    const oppPts = calculateEnvido(
-      initialOppHandRef.current.length === 3 ? initialOppHandRef.current : oppHandCardsRef.current
-    );
+    const oppHand = initialOppHandRef.current.length === 3
+      ? initialOppHandRef.current
+      : (oppHandCardsRef.current.length > 0 ? oppHandCardsRef.current : []);
+    const oppPts = calculateEnvido(oppHand);
     settleEnvido(callType, myPts, oppPts);
   };
 
@@ -1397,26 +1435,6 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
               {/* Cards played in this trick */}
               <div className="table-center-felt-cards">
-                {/* Banner de Turno visible en 2v2 y 3v3 */}
-                <div className={`table-turn-banner ${currentTurnSeat === 0 ? 'turn-mine' : 'turn-rival'}`}>
-                  {currentTurnSeat === -1 ? (
-                    <span className="turn-banner-txt resolving">✨ Resolviendo baza...</span>
-                  ) : currentTurnSeat === 0 ? (
-                    <span className="turn-banner-txt my-turn-glow">
-                      <span className="turn-live-dot"></span>
-                      🎯 ¡ES TU TURNO DE TIRAR!
-                    </span>
-                  ) : (
-                    <span className="turn-banner-txt">
-                      <span className="turn-spin-icon">⏳</span>
-                      Turno de: <strong>{defaultMultiSeats[currentTurnSeat]?.name || 'Rival'}</strong>
-                      <span className={`turn-tag team-${defaultMultiSeats[currentTurnSeat]?.team}`}>
-                        {defaultMultiSeats[currentTurnSeat]?.team === 0 ? 'Compañero' : 'Rival'}
-                      </span>
-                    </span>
-                  )}
-                </div>
-
                 {currentTrickPlays.length === 0 ? (
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
                     Mesa {currentTrick + 1}ª Mano ({matchType})
@@ -1461,21 +1479,6 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             {/* The Felt Table (Center - Tapete verde embutido en madera) */}
             <div className="felt-center wood-table-felt-inset">
               <div className="table-center-layout">
-                {/* Indicador de turno en 1v1 */}
-                <div className={`table-turn-banner ${turn === 'player' ? 'turn-mine' : 'turn-rival'}`} style={{ alignSelf: 'center', marginBottom: 4 }}>
-                  {turn === 'player' ? (
-                    <span className="turn-banner-txt my-turn-glow">
-                      <span className="turn-live-dot"></span>
-                      🎯 ¡ES TU TURNO DE TIRAR!
-                    </span>
-                  ) : (
-                    <span className="turn-banner-txt">
-                      <span className="turn-spin-icon">⏳</span>
-                      Turno de: <strong>{config.opponentName || 'Don Florencio'}</strong>
-                    </span>
-                  )}
-                </div>
-
                 {/* Mazo al costado para mezclar / cortar y ver quién arranca */}
                 <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
 
@@ -1503,6 +1506,14 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           {playerGesture && (
             <div className="floating-gesture-bubble player-gesture-pop">
               {playerGesture}
+            </div>
+          )}
+
+          {/* Diálogo / Speech Bubble de turno (tanto para PC como para Celular) */}
+          {(isMulti ? currentTurnSeat === 0 : turn === 'player') && !matchWinner && !pendingCall && (
+            <div className="turn-dialog-bubble" role="status" aria-live="polite">
+              <span className="turn-live-dot" />
+              <span>🎯 ¡Es tu turno de tirar!</span>
             </div>
           )}
 
@@ -1793,6 +1804,52 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             >
               Listo, tengo el celu
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal interactivo de Resolución de Envido (muestra ambos tantos transparentemente) */}
+      {envidoModal && (
+        <div className="envido-modal-overlay" onClick={() => setEnvidoModal(null)}>
+          <div className="envido-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="envido-modal-header">
+              <span className="envido-modal-badge">{envidoModal.callType.toUpperCase().replace('_', ' ')}</span>
+              <h3 className="envido-modal-title">Resultado del Envido</h3>
+            </div>
+            
+            <div className="envido-modal-comparison">
+              <div className={`envido-score-box ${envidoModal.winnerTeam === 'player' ? 'is-winner' : 'is-loser'}`}>
+                <span className="envido-box-label">{isMulti ? 'Nosotros' : (config.playerName || 'Vos')}</span>
+                <span className="envido-box-points">{envidoModal.pEnvido}</span>
+                <span className="envido-box-sub">tantos</span>
+                {envidoModal.winnerTeam === 'player' && (
+                  <div className="envido-winner-crown">👑 Ganador</div>
+                )}
+              </div>
+
+              <div className="envido-vs-divider">
+                <span>VS</span>
+              </div>
+
+              <div className={`envido-score-box ${envidoModal.winnerTeam === 'opponent' ? 'is-winner' : 'is-loser'}`}>
+                <span className="envido-box-label">{isMulti ? 'Ellos' : (config.opponentName || 'Rival')}</span>
+                <span className="envido-box-points">{envidoModal.oEnvido}</span>
+                <span className="envido-box-sub">tantos</span>
+                {envidoModal.winnerTeam === 'opponent' && (
+                  <div className="envido-winner-crown">👑 Ganador</div>
+                )}
+              </div>
+            </div>
+
+            <div className="envido-modal-footer">
+              <p className="envido-modal-reason">{envidoModal.reason}</p>
+              <span className="envido-modal-pts-pill">
+                +{envidoModal.pts} {envidoModal.pts === 1 ? 'tanto' : 'tantos'} para {envidoModal.winnerTeam === 'player' ? (isMulti ? 'Nosotros' : (config.playerName || 'Vos')) : (isMulti ? 'Ellos' : (config.opponentName || 'Rival'))}
+              </span>
+              <button className="envido-modal-close-btn" onClick={() => setEnvidoModal(null)}>
+                Continuar
+              </button>
+            </div>
           </div>
         </div>
       )}

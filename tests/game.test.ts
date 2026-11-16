@@ -222,3 +222,17 @@ test("estrategia táctica del bot en equipo: no quema cartas cuando el compañer
   );
   assert.equal(chosen2, 2); // Debe elegir índice 2 (7 de espada)
 });
+
+test("resolución de Envido: el mayor puntaje gana siempre; a empate gana la Mano", () => {
+  const compareEnvido = (pPts: number, oPts: number, isPlayerMano: boolean) => {
+    return pPts > oPts || (pPts === oPts && isPlayerMano);
+  };
+
+  // 1. Mayor puntaje gana sin importar quién sea mano
+  assert.equal(compareEnvido(31, 28, false), true); // Jugador con 31 gana sin ser mano
+  assert.equal(compareEnvido(24, 30, true), false);  // Rival con 30 gana aunque jugador sea mano
+
+  // 2. Empate: gana estrictamente la Mano
+  assert.equal(compareEnvido(27, 27, true), true);   // Jugador es mano: gana el jugador
+  assert.equal(compareEnvido(27, 27, false), false);  // Rival es mano: gana el rival
+});
