@@ -2575,3 +2575,146 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   }
 }
 
+/* ─── Turn Indicator Banners & Badges (2v2, 3v3 and 1v1) ────────── */
+.table-turn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s ease;
+  z-index: 5;
+}
+
+.table-turn-banner.turn-mine {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  color: #fff;
+  border: 1.5px solid #86efac;
+  animation: turnPulseGlow 1.5s infinite alternate;
+}
+
+.table-turn-banner.turn-rival {
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.turn-banner-txt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.turn-banner-txt.my-turn-glow {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.3px;
+}
+
+.turn-banner-txt.resolving {
+  color: var(--gold);
+  font-style: italic;
+}
+
+.turn-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px #fff;
+  animation: pulse 1s infinite alternate;
+}
+
+.turn-spin-icon {
+  display: inline-block;
+  animation: spinSlow 3s infinite linear;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes turnPulseGlow {
+  from {
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.9), 0 4px 14px rgba(0, 0, 0, 0.6);
+    transform: scale(1.03);
+  }
+}
+
+.turn-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.turn-tag.team-0 {
+  background: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.turn-tag.team-1 {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+.seat-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.seat-name-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.seat-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.seat-role-pill.mano {
+  font-size: 9px;
+  background: #eab308;
+  color: #000;
+  font-weight: 800;
+  padding: 0 5px;
+  border-radius: 4px;
+}
+
+.seat-turn-pill {
+  font-size: 9px;
+  background: #22c55e;
+  color: #000;
+  font-weight: 800;
+  padding: 0 5px;
+  border-radius: 4px;
+  animation: pulse 1s infinite alternate;
+}
+
+.player-turn-tag {
+  font-size: 10px;
+  background: #22c55e;
+  color: #000;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  animation: pulse 1s infinite alternate;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+

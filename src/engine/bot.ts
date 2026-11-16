@@ -59,6 +59,82 @@ export function botChooseCard(
   return sorted[sorted.length - 1].idx;
 }
 
+/**
+ * Decisiones tácticas de naipes para compañeros y rivales en 2v2 y 3v3 (Truco Argentino criollo).
+ * Sigue el patrón estratégico clásico:
+ * 1. Si tu compañero ya va ganando la baza (su carta es la más alta en mesa): no quemar carta buena, achicar con la más baja.
+ * 2. Si el rival va ganando la baza: matar con la menor carta posible que lo supere ("matar justo"). Si no se puede, achicar con la más baja.
+ * 3. Si sale primero (líder de la baza):
+ *    - 1ª mano: tantear con intermedia o buscar primera.
+ *    - 2ª mano habiendo ganado 1ª: achicar para reservar la mejor para 3ª.
+ *    - 2ª mano habiendo perdido 1ª o parda: tirar la más fuerte.
+ *    - 3ª mano: tirar la mejor restante.
+ */
+export function chooseMultiBotCard(
+  botHand: Card[],
+  botSeat: number,
+  botTeam: 0 | 1,
+  trickIdx: number,
+  currentPlays: { seatIndex: number; team: 0 | 1; card: Card; playerName: string }[],
+  multiTrickWinners: (0 | 1 | 'tie')[]
+): number {
+  if (botHand.length <= 1) return 0;
+
+  // Indexar y ordenar de menor a mayor poder
+  const indexed = botHand.map((c, i) => ({ card: c, index: i }));
+  indexed.sort((a, b) => a.card.power - b.card.power);
+
+  // Caso A: El bot abre la baza (nadie tiró todavía)
+  if (currentPlays.length === 0) {
+    if (trickIdx === 0) {
+      // 1ª Mano: con 3 cartas, tantear con la del medio para guardar la mayor
+      if (indexed.length === 3) return indexed[1].index;
+      return indexed[0].index;
+    }
+    if (trickIdx === 1) {
+      // 2ª Mano:
+      const wonTrick1 = multiTrickWinners[0] === botTeam;
+      if (wonTrick1) {
+        // Si ganamos la 1ª mano, guardamos la mejor y salimos con la más baja
+        return indexed[0].index;
+      }
+      // Si perdimos la 1ª o fue parda, es a matar o morir: salir con la más alta
+      return indexed[indexed.length - 1].index;
+    }
+    // 3ª Mano: salir con la mejor carta restante
+    return indexed[indexed.length - 1].index;
+  }
+
+  // Caso B: Ya hay cartas jugadas en la mesa
+  let highestPower = -1;
+  let highestPlay: { seatIndex: number; team: 0 | 1; card: Card } | null = null;
+  for (const p of currentPlays) {
+    if (p.card.power > highestPower) {
+      highestPower = p.card.power;
+      highestPlay = p;
+    }
+  }
+
+  // ¿Un compañero del bot ya tiene la carta más alta en la mesa?
+  const isTeammateWinning = highestPlay !== null && (highestPlay as { team: 0 | 1 }).team === botTeam;
+
+  if (isTeammateWinning) {
+    // Compañero va ganando: achicamos con la más baja de la mano
+    return indexed[0].index;
+  }
+
+  // El rival va ganando:
+  // Buscamos la carta más baja que supere a la del rival
+  const winningPlay = indexed.find(item => item.card.power > highestPower);
+  if (winningPlay) {
+    // Matar justo con la menor carta posible
+    return winningPlay.index;
+  }
+
+  // No podemos superar al rival: achicar con la más baja sin quemar intermedias
+  return indexed[0].index;
+}
+
 // ─── Envido decisions ───────────────────────────────────────────
 
 /** Should the bot call envido? */

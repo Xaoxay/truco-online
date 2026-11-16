@@ -33,6 +33,7 @@ import {
 } from '../engine/rules';
 import {
   botChooseCard,
+  chooseMultiBotCard,
   botShouldCallEnvido,
   botRespondEnvido,
   botShouldCallTruco,
@@ -131,7 +132,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const setMultiHands = (v: CardType[][]) => { multiHandsRef.current = v; setMultiHandsState(v); };
   const [currentTurnSeat, setCurrentTurnSeatState] = useState(0);
   const setCurrentTurnSeat = (v: number) => { currentTurnSeatRef.current = v; setCurrentTurnSeatState(v); };
-  const [, setManoSeatState] = useState(0);
+  const [manoSeat, setManoSeatState] = useState(0);
   const setManoSeat = (v: number) => { manoSeatRef.current = v; setManoSeatState(v); };
   const [currentTrickPlays, setCurrentTrickPlaysState] = useState<{
     seatIndex: number;
@@ -167,7 +168,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const setTricks = (v: PlayedSlot[]) => { tricksRef.current = v; setTricksState(v); };
 
   // Turn & phase
-  const [, setManoState] = useState<PlayerId>('player');
+  const [mano, setManoState] = useState<PlayerId>('player');
   const setMano = (v: PlayerId) => { manoRef.current = v; setManoState(v); };
   const [turn, setTurnState] = useState<PlayerId>('player');
   const setTurn = (v: PlayerId) => { turnRef.current = v; setTurnState(v); };
@@ -404,20 +405,27 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       return;
     }
 
-    const botHand = curHands[seatIdx];
+    const currentHands = multiHandsRef.current.length === defaultMultiSeats.length ? multiHandsRef.current : curHands;
+    const botHand = currentHands[seatIdx] || [];
     if (!botHand || botHand.length === 0) return;
 
-    const cardIndex = Math.floor(Math.random() * botHand.length);
-    const card = botHand[cardIndex];
+    const seatInfo = defaultMultiSeats[seatIdx];
+    const cardIndex = chooseMultiBotCard(
+      botHand,
+      seatIdx,
+      seatInfo.team,
+      trickIdx,
+      existingPlays,
+      multiWinnersRef.current
+    );
+    const card = botHand[cardIndex] || botHand[0];
     const newHand = botHand.filter((_, i) => i !== cardIndex);
 
-    const baseHands = multiHandsRef.current.length === defaultMultiSeats.length ? multiHandsRef.current : curHands;
-    const updatedHands = [...baseHands];
+    const updatedHands = [...currentHands];
     updatedHands[seatIdx] = newHand;
     setMultiHands(updatedHands);
 
     soundCardPlay();
-    const seatInfo = defaultMultiSeats[seatIdx];
     const play = {
       seatIndex: seatIdx,
       team: seatInfo.team,
@@ -430,7 +438,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
     const seatCount = defaultMultiSeats.length;
     if (updatedPlays.length === seatCount) {
-      later(() => resolveMultiTrick(updatedPlays, trickIdx, updatedHands), 800);
+      setCurrentTurnSeat(-1); // Nadie juega mientras se contempla la mesa
+      later(() => resolveMultiTrick(updatedPlays, trickIdx, updatedHands), 1200);
     } else {
       const nextSeat = (seatIdx + 1) % seatCount;
       setCurrentTurnSeat(nextSeat);
@@ -471,6 +480,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       setCurrentTrick(nextTrickIdx);
       setCurrentTrickPlays([]);
 
+      // Regla de truco criollo: sale el que mató la baza anterior; si fue parda, sale la Mano
       const nextLeader = result.winningPlay && result.winnerTeam !== 'tie'
         ? result.winningPlay.seatIndex
         : manoSeatRef.current;
@@ -733,10 +743,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
       const seatCount = defaultMultiSeats.length;
       if (updatedPlays.length === seatCount) {
-        setCurrentTurnSeat(-1); // nadie juega mientras se resuelve la mano
-        later(() => resolveMultiTrick(updatedPlays, trickIdx, updatedHands), 800);
+        setCurrentTurnSeat(-1); // Nadie juega mientras se contempla la mesa
+        later(() => resolveMultiTrick(updatedPlays, trickIdx, updatedHands), 1200);
       } else {
-        const nextSeat = 1;
+        const nextSeat = (0 + 1) % seatCount;
         setCurrentTurnSeat(nextSeat);
         later(() => runMultiBotTurn(nextSeat, updatedHands, trickIdx, updatedPlays), 900);
       }
@@ -971,7 +981,13 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   /** Si el bot tiene que seguir jugando después de resolver un canto, lo reanuda. */
   const resumeBotIfNeeded = () => {
-    if (isMulti) return;
+    if (isMulti) {
+      const curSeat = currentTurnSeatRef.current;
+      if (curSeat > 0 && !roundEndedRef.current && !matchOverRef.current) {
+        later(() => runMultiBotTurn(curSeat, multiHandsRef.current, currentTrickRef.current, currentTrickPlaysRef.current), 900);
+      }
+      return;
+    }
     if (config.mode === 'bot' && turnRef.current === 'opponent') {
       later(() => runBotTurn(), 900);
     }
@@ -1224,6 +1240,38 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     }
   };
 
+  const renderSeatChip = (seatIdx: number) => {
+    const seat = defaultMultiSeats[seatIdx];
+    if (!seat) return null;
+    const isTurn = currentTurnSeat === seatIdx;
+    const isMano = manoSeat === seatIdx;
+    const cardsCount = multiHands[seatIdx]?.length ?? 3;
+    const isTeammate = seat.team === 0;
+
+    return (
+      <div
+        key={seatIdx}
+        className={`seat-chip team-${seat.team} ${isTurn ? 'current-turn' : ''}`}
+        aria-label={`${seat.name} ${isTurn ? '(Turno actual)' : ''} ${isMano ? '(Mano)' : ''}`}
+      >
+        <span className="seat-avatar">{seat.avatar}</span>
+        <div className="seat-info-col">
+          <div className="seat-name-row">
+            <span className="seat-name">{seat.name}</span>
+            <span className={`seat-team-badge team-${seat.team}`} title={isTeammate ? 'Tu Compañero' : 'Equipo Rival'}>
+              {isTeammate ? '🤝' : '⚔️'}
+            </span>
+          </div>
+          <div className="seat-badges-row">
+            <span className="seat-card-count">🃏 {cardsCount}</span>
+            {isMano && <span className="seat-role-pill mano" title="Mano de la ronda">🖐️ MANO</span>}
+            {isTurn && <span className="seat-turn-pill" title="Le toca tirar carta">🟢 TURNO</span>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`game-layout-wrapper ${isDesktop ? 'desktop-board-layout' : ''}`}>
       {/* Desktop Matchstick Sidebar */}
@@ -1333,47 +1381,42 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             {/* Top Row: Partner (in 2v2) or Partners/Rivals (in 3v3) */}
             <div className="table-row-top">
               {matchType === '2v2' ? (
-                <div className={`seat-chip team-0 ${currentTurnSeat === 2 ? 'current-turn' : ''}`}>
-                  <span className="seat-avatar">🤠</span>
-                  <span className="seat-name">El Chaja (Compañero)</span>
-                  <span className="seat-card-count">🃏 {multiHands[2]?.length ?? 3}</span>
-                  {currentTurnSeat === 2 && <span className="turn-indicator-pulse"></span>}
-                </div>
+                renderSeatChip(2)
               ) : (
                 <>
-                  <div className={`seat-chip team-0 ${currentTurnSeat === 2 ? 'current-turn' : ''}`}>
-                    <span className="seat-avatar">🤠</span>
-                    <span className="seat-name">El Chaja (Compañero 1)</span>
-                    <span className="seat-card-count">🃏 {multiHands[2]?.length ?? 3}</span>
-                    {currentTurnSeat === 2 && <span className="turn-indicator-pulse"></span>}
-                  </div>
-                  <div className={`seat-chip team-1 ${currentTurnSeat === 3 ? 'current-turn' : ''}`}>
-                    <span className="seat-avatar">😼</span>
-                    <span className="seat-name">El Zorro (Rival 2)</span>
-                    <span className="seat-card-count">🃏 {multiHands[3]?.length ?? 3}</span>
-                    {currentTurnSeat === 3 && <span className="turn-indicator-pulse"></span>}
-                  </div>
-                  <div className={`seat-chip team-0 ${currentTurnSeat === 4 ? 'current-turn' : ''}`}>
-                    <span className="seat-avatar">🧉</span>
-                    <span className="seat-name">Martín Fierro (Compañero 2)</span>
-                    <span className="seat-card-count">🃏 {multiHands[4]?.length ?? 3}</span>
-                    {currentTurnSeat === 4 && <span className="turn-indicator-pulse"></span>}
-                  </div>
+                  {renderSeatChip(2)}
+                  {renderSeatChip(3)}
+                  {renderSeatChip(4)}
                 </>
               )}
             </div>
 
             {/* Middle Row: Left Rival, Center Cards, Right Rival */}
             <div className="table-row-middle">
-              <div className={`seat-chip team-1 ${currentTurnSeat === 1 ? 'current-turn' : ''}`}>
-                <span className="seat-avatar">😎</span>
-                <span className="seat-name">{config.opponentName || 'Rival 1'}</span>
-                <span className="seat-card-count">🃏 {multiHands[1]?.length ?? 3}</span>
-                {currentTurnSeat === 1 && <span className="turn-indicator-pulse"></span>}
-              </div>
+              {renderSeatChip(1)}
 
               {/* Cards played in this trick */}
               <div className="table-center-felt-cards">
+                {/* Banner de Turno visible en 2v2 y 3v3 */}
+                <div className={`table-turn-banner ${currentTurnSeat === 0 ? 'turn-mine' : 'turn-rival'}`}>
+                  {currentTurnSeat === -1 ? (
+                    <span className="turn-banner-txt resolving">✨ Resolviendo baza...</span>
+                  ) : currentTurnSeat === 0 ? (
+                    <span className="turn-banner-txt my-turn-glow">
+                      <span className="turn-live-dot"></span>
+                      🎯 ¡ES TU TURNO DE TIRAR!
+                    </span>
+                  ) : (
+                    <span className="turn-banner-txt">
+                      <span className="turn-spin-icon">⏳</span>
+                      Turno de: <strong>{defaultMultiSeats[currentTurnSeat]?.name || 'Rival'}</strong>
+                      <span className={`turn-tag team-${defaultMultiSeats[currentTurnSeat]?.team}`}>
+                        {defaultMultiSeats[currentTurnSeat]?.team === 0 ? 'Compañero' : 'Rival'}
+                      </span>
+                    </span>
+                  )}
+                </div>
+
                 {currentTrickPlays.length === 0 ? (
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
                     Mesa {currentTrick + 1}ª Mano ({matchType})
@@ -1390,12 +1433,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                 )}
               </div>
 
-              <div className={`seat-chip team-1 ${currentTurnSeat === (matchType === '2v2' ? 3 : 5) ? 'current-turn' : ''}`}>
-                <span className="seat-avatar">🐎</span>
-                <span className="seat-name">{matchType === '2v2' ? 'El Zorro' : 'Don Segundo'}</span>
-                <span className="seat-card-count">🃏 {multiHands[matchType === '2v2' ? 3 : 5]?.length ?? 3}</span>
-                {currentTurnSeat === (matchType === '2v2' ? 3 : 5) && <span className="turn-indicator-pulse"></span>}
-              </div>
+              {renderSeatChip(matchType === '2v2' ? 3 : 5)}
             </div>
           </div>
         ) : (
@@ -1423,6 +1461,21 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             {/* The Felt Table (Center - Tapete verde embutido en madera) */}
             <div className="felt-center wood-table-felt-inset">
               <div className="table-center-layout">
+                {/* Indicador de turno en 1v1 */}
+                <div className={`table-turn-banner ${turn === 'player' ? 'turn-mine' : 'turn-rival'}`} style={{ alignSelf: 'center', marginBottom: 4 }}>
+                  {turn === 'player' ? (
+                    <span className="turn-banner-txt my-turn-glow">
+                      <span className="turn-live-dot"></span>
+                      🎯 ¡ES TU TURNO DE TIRAR!
+                    </span>
+                  ) : (
+                    <span className="turn-banner-txt">
+                      <span className="turn-spin-icon">⏳</span>
+                      Turno de: <strong>{config.opponentName || 'Don Florencio'}</strong>
+                    </span>
+                  )}
+                </div>
+
                 {/* Mazo al costado para mezclar / cortar y ver quién arranca */}
                 <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
 
@@ -1458,7 +1511,11 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             <div className={`player-badge ${(isMulti ? currentTurnSeat === 0 : turn === 'player') ? 'player-turn-active' : ''}`} aria-label={`Jugador: ${config.playerName}`}>
               <span className="player-avatar">🤠</span>
               <span className="player-name">{config.playerName || 'Vos'}</span>
-              {(isMulti ? currentTurnSeat === 0 : turn === 'player') && <span className="turn-indicator-pulse" title="Es tu turno de jugar"></span>}
+              {(isMulti ? currentTurnSeat === 0 : turn === 'player') ? (
+                <span className="player-turn-tag">🎯 ¡TE TOCA TIRAR!</span>
+              ) : (
+                (isMulti ? manoSeat === 0 : mano === 'player') && <span className="seat-role-pill mano">🖐️ MANO</span>
+              )}
             </div>
           </div>
 

@@ -97,7 +97,8 @@ test("limita el archivo a las últimas 100 partidas", () => {
   assert.equal(s.finished.length, 100);
 });
 
-import { calculateEnvido } from "../src/engine/rules.ts";
+import { calculateEnvido, evaluateTeamTrick, checkTeamRoundWinner } from "../src/engine/rules.ts";
+import { chooseMultiBotCard } from "../src/engine/bot.ts";
 import type { Card } from "../src/engine/types.ts";
 
 test("calcula el Envido correctamente en todos los casos criollos", () => {
@@ -140,4 +141,84 @@ test("calcula el Envido correctamente en todos los casos criollos", () => {
     { id: 'oro-12', num: 12, suit: 'oro', power: 7, envidoVal: 0, label: '12 Oro' },
   ];
   assert.equal(calculateEnvido(handCero), 0);
+});
+
+test("evalúa bazas de equipo (2v2 y 3v3) respetando pardas y compañeros", () => {
+  const cardEspada1: Card = { id: 'espada-1', num: 1, suit: 'espada', power: 14, envidoVal: 1, label: '1 Espada' };
+  const cardBasto1: Card = { id: 'basto-1', num: 1, suit: 'basto', power: 13, envidoVal: 1, label: '1 Basto' };
+  const cardEspada7: Card = { id: 'espada-7', num: 7, suit: 'espada', power: 12, envidoVal: 7, label: '7 Espada' };
+  const cardTres1: Card = { id: 'oro-3', num: 3, suit: 'oro', power: 10, envidoVal: 3, label: '3 Oro' };
+  const cardTres2: Card = { id: 'copa-3', num: 3, suit: 'copa', power: 10, envidoVal: 3, label: '3 Copa' };
+
+  // 1. Gana el equipo con la carta más alta
+  const res1 = evaluateTeamTrick([
+    { seatIndex: 0, team: 0, card: cardBasto1, playerName: 'Vos' },
+    { seatIndex: 1, team: 1, card: cardEspada1, playerName: 'Rival 1' },
+    { seatIndex: 2, team: 0, card: cardEspada7, playerName: 'Compañero' },
+    { seatIndex: 3, team: 1, card: cardTres1, playerName: 'Rival 2' },
+  ]);
+  assert.equal(res1.winnerTeam, 1);
+  assert.equal(res1.winningPlay?.seatIndex, 1);
+
+  // 2. Dos compañeros empatan con la más alta (dos 3 vs un 4): gana su equipo
+  const cardCuatroRival: Card = { id: 'copa-4', num: 4, suit: 'copa', power: 1, envidoVal: 4, label: '4 Copa' };
+  const res2 = evaluateTeamTrick([
+    { seatIndex: 0, team: 0, card: cardTres1, playerName: 'Vos' },
+    { seatIndex: 1, team: 1, card: cardCuatroRival, playerName: 'Rival 1' },
+    { seatIndex: 2, team: 0, card: cardTres2, playerName: 'Compañero' },
+  ]);
+  assert.equal(res2.winnerTeam, 0);
+
+  // 3. Rivales empatan con la más alta: PARDA
+  const res3 = evaluateTeamTrick([
+    { seatIndex: 0, team: 0, card: cardTres1, playerName: 'Vos' },
+    { seatIndex: 1, team: 1, card: cardTres2, playerName: 'Rival 1' },
+  ]);
+  assert.equal(res3.winnerTeam, 'tie');
+});
+
+test("define el ganador de la ronda en 2v2/3v3 según las reglas criollas (primera gana tras parda)", () => {
+  // Baza 1 ganada por 0, Baza 2 parda -> gana equipo 0
+  assert.equal(checkTeamRoundWinner([0, 'tie'], 1), 0);
+
+  // Baza 1 parda, Baza 2 ganada por 1 -> gana equipo 1
+  assert.equal(checkTeamRoundWinner(['tie', 1], 0), 1);
+
+  // Tres pardas seguidas -> define el equipo que era Mano
+  assert.equal(checkTeamRoundWinner(['tie', 'tie', 'tie'], 0), 0);
+  assert.equal(checkTeamRoundWinner(['tie', 'tie', 'tie'], 1), 1);
+});
+
+test("estrategia táctica del bot en equipo: no quema cartas cuando el compañero va ganando y mata justo al rival", () => {
+  const cardCuatro: Card = { id: 'copa-4', num: 4, suit: 'copa', power: 1, envidoVal: 4, label: '4 Copa' };
+  const cardSieteEspada: Card = { id: 'espada-7', num: 7, suit: 'espada', power: 12, envidoVal: 7, label: '7 Espada' };
+  const cardAnchoEspada: Card = { id: 'espada-1', num: 1, suit: 'espada', power: 14, envidoVal: 1, label: '1 Espada' };
+
+  const botHand: Card[] = [cardAnchoEspada, cardCuatro, cardSieteEspada];
+
+  // Caso 1: El compañero (team 0) ya tiene el Ancho de Basto (power 13) en la mesa
+  // El bot (team 0) NO debe tirar su 1 de espada (índice 0); debe achicar con el 4 (índice 1)
+  const anchoBasto: Card = { id: 'basto-1', num: 1, suit: 'basto', power: 13, envidoVal: 1, label: '1 Basto' };
+  const chosen1 = chooseMultiBotCard(
+    botHand,
+    2,
+    0,
+    0,
+    [{ seatIndex: 0, team: 0, card: anchoBasto, playerName: 'Vos' }],
+    []
+  );
+  assert.equal(chosen1, 1); // Debe elegir índice 1 (el 4 de copa)
+
+  // Caso 2: El rival (team 1) tiene un 3 (power 10) en la mesa
+  // El bot (team 0) debe matar justo con el 7 de espada (power 12, índice 2), sin quemar el ancho de espada (power 14, índice 0)
+  const tresCopa: Card = { id: 'copa-3', num: 3, suit: 'copa', power: 10, envidoVal: 3, label: '3 Copa' };
+  const chosen2 = chooseMultiBotCard(
+    botHand,
+    2,
+    0,
+    0,
+    [{ seatIndex: 1, team: 1, card: tresCopa, playerName: 'Rival 1' }],
+    []
+  );
+  assert.equal(chosen2, 2); // Debe elegir índice 2 (7 de espada)
 });
