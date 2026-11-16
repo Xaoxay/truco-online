@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Card as CardType, PlayerId, TrucoLevel, EnvidoType, RoomConfig } from '../engine/types';
 import { CardFace, CardBack } from './Card';
 import { PlayerHandsHoldingCards, OpponentHandsHoldingCards } from './HandsHoldingCards';
@@ -126,6 +126,11 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     oppCard: CardType;
     starterName: string;
   } | null>(null);
+
+  // Sincronización en tiempo real para partidas online WebRTC
+  const oppHandCardsRef = useRef<CardType[]>([]);
+  const playerHandRef = useRef<CardType[]>([]);
+  const manoRef = useRef<PlayerId>('player');
 
   const handleShuffleAndCut = () => {
     soundButton();
@@ -374,6 +379,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     setEnvidoPlayed(false);
     setFirstCardPlayed(false);
 
+    oppHandCardsRef.current = oHand;
+    playerHandRef.current = pHand;
+    manoRef.current = nextMano;
+
     if (config.mode === 'online' && network && network.isHost) {
       // Host deals and sends guest's hand
       setPlayerHand(pHand);
@@ -385,6 +394,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         oppHandCount: 3,
         mano: nextMano === 'player' ? 'opponent' : 'player', // from guest perspective
         roundNum: 1,
+        hostName: config.playerName,
       });
     } else if (config.mode !== 'online') {
       setPlayerHand(pHand);
@@ -440,9 +450,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     const handleNetMsg = (msg: any) => {
       if (msg.type === 'START_ROUND') {
         setPlayerHand(msg.hand);
-        setOppCardsCount(msg.oppHandCount);
-        setMano(msg.mano);
-        setTurn(msg.mano);
+        setOppCardsCount(msg.oppHandCount || 3);
+        const m = msg.mano || 'player';
+        setMano(m);
+        setTurn(m);
         setCurrentTrick(0);
         setTricks([
           { playerCard: null, oppCard: null, winner: null },
@@ -455,7 +466,11 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         setEnvidoPlayed(false);
         setFirstCardPlayed(false);
         soundWinRound();
-        showToast('¡Nueva mano repartida por el anfitrión!');
+        showToast('¡Partida comenzada! Repartió ' + (msg.hostName || config.opponentName));
+      } else if (msg.type === 'HOST_START_MATCH') {
+        if (!network.isHost) {
+          network.sendMessage({ type: 'GUEST_READY' });
+        }
       } else if (msg.type === 'PLAY_CARD') {
         soundCardPlay();
         setOppCardsCount(prev => Math.max(0, prev - 1));
@@ -476,15 +491,19 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       } else if (msg.type === 'CHAT') {
         showSpeech(msg.text);
       } else if (msg.type === 'GUEST_READY') {
-        if (config.mode === 'online' && network && network.isHost && oppHandCards.length > 0) {
-          network.sendMessage({
-            type: 'START_ROUND',
-            hand: oppHandCards,
-            oppHandCount: playerHand.length,
-            mano: mano,
-            roundNum: 1,
-            hostName: config.playerName,
-          } as any);
+        if (config.mode === 'online' && network && network.isHost) {
+          if (oppHandCardsRef.current && oppHandCardsRef.current.length > 0) {
+            network.sendMessage({
+              type: 'START_ROUND',
+              hand: oppHandCardsRef.current,
+              oppHandCount: playerHandRef.current.length || 3,
+              mano: manoRef.current === 'player' ? 'opponent' : 'player',
+              roundNum: 1,
+              hostName: config.playerName,
+            });
+          } else {
+            startNewRound('player');
+          }
         }
       } else if (msg.type === 'REVANCHE') {
         setScorePlayer(0);

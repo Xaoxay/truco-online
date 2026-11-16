@@ -366,9 +366,19 @@ export default function OnlineLobby({
             soundButton();
             onStartMatch();
           }}
+          onTouchEnd={(e) => {
+            if (!peerName && !fillBots) return;
+            e.preventDefault();
+            soundButton();
+            onStartMatch();
+          }}
         >
           <span>
-            {peerName || fillBots ? `¡Comenzar Partida ${matchType}! 🃏` : 'Esperando que entre tu amigo...'}
+            {peerName
+              ? `¡Comenzar Partida ${matchType} con ${peerName}! 🃏`
+              : fillBots
+              ? `¡Comenzar Partida ${matchType} (con Bots)! 🤖`
+              : 'Esperando que entre tu amigo...'}
           </span>
         </button>
       ) : (

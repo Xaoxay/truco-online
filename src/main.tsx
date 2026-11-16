@@ -38,6 +38,11 @@ function MainApp() {
     return typeof window !== 'undefined' && window.innerWidth >= 768;
   });
 
+  const configRef = useRef(config);
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
   const toggleDesktop = () => {
     setDesktopLayout(prev => !prev);
   };
@@ -85,8 +90,8 @@ function MainApp() {
           net.sendMessage({
             type: 'JOIN_ACK',
             hostName: hostPlayerName,
-            goal: config.goal,
-            withFlor: config.withFlor,
+            goal: configRef.current.goal,
+            withFlor: configRef.current.withFlor,
           });
         }
       },
@@ -126,9 +131,11 @@ function MainApp() {
             withFlor: msg.withFlor,
             opponentName: msg.hostName,
           }));
-        } else if (msg.type === 'START_ROUND') {
-          // El Anfitrión inició la partida: guardar las cartas recibidas y entrar al juego
-          setPendingRoundData(msg);
+        } else if (msg.type === 'HOST_START_MATCH' || msg.type === 'START_ROUND') {
+          // El Anfitrión inició la partida: si vienen cartas guardarlas y montar el juego
+          if (msg.type === 'START_ROUND') {
+            setPendingRoundData(msg);
+          }
           setView('game');
         }
       },
@@ -149,10 +156,26 @@ function MainApp() {
 
   // ─── Host Starts Match ─────────────────────────────────────────
   const handleHostStartMatch = () => {
-    if (networkRef.current) {
+    // Si no hay jugador remoto (el anfitrión está solo o probando con bots)
+    if (!peerName) {
+      networkRef.current?.destroy();
+      networkRef.current = null;
       setConfig(prev => ({
         ...prev,
-        opponentName: peerName || 'Amigo',
+        mode: 'bot',
+        opponentName: 'Don Florencio',
+      }));
+      setView('game');
+      return;
+    }
+
+    if (networkRef.current) {
+      // Avisar al invitado por canal seguro que ya comienza el partido
+      networkRef.current.sendMessage({ type: 'HOST_START_MATCH' });
+      setConfig(prev => ({
+        ...prev,
+        mode: 'online',
+        opponentName: peerName,
       }));
       setView('game');
     }

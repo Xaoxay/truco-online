@@ -5,7 +5,9 @@ import type { Card, TrucoLevel, EnvidoType } from './types';
 export type NetworkMessage =
   | { type: 'JOIN'; playerName: string }
   | { type: 'JOIN_ACK'; hostName: string; goal: 15 | 30; withFlor: boolean }
-  | { type: 'START_ROUND'; hand: Card[]; oppHandCount: number; mano: 'player' | 'opponent'; roundNum: number }
+  | { type: 'HOST_START_MATCH' }
+  | { type: 'GUEST_READY' }
+  | { type: 'START_ROUND'; hand: Card[]; oppHandCount: number; mano: 'player' | 'opponent'; roundNum: number; hostName?: string }
   | { type: 'PLAY_CARD'; card: Card; trickIndex: number }
   | { type: 'CALL'; call: 'envido' | 'real_envido' | 'falta_envido' | 'truco' | 'retruco' | 'vale4' | 'flor' }
   | { type: 'RESPONSE'; resp: 'quiero' | 'no_quiero'; toCall: string }
@@ -113,15 +115,38 @@ export class TrucoNetwork {
     });
   }
 
+  private pendingQueue: NetworkMessage[] = [];
+
+  private flushQueue() {
+    if (!this.conn || !this.conn.open) return;
+    while (this.pendingQueue.length > 0) {
+      const msg = this.pendingQueue.shift();
+      if (msg) {
+        try {
+          this.conn.send(msg);
+        } catch (e) {
+          console.error('Error flushing message to peer:', e);
+        }
+      }
+    }
+  }
+
   private setupConnection(guestName?: string) {
     if (!this.conn) return;
 
-    this.conn.on('open', () => {
+    const onOpened = () => {
       this.callbacks.onStatusChange('connected', '¡Conectado con tu amigo!');
+      this.flushQueue();
       if (!this.isHost && guestName) {
         this.sendMessage({ type: 'JOIN', playerName: guestName });
       }
-    });
+    };
+
+    if (this.conn.open) {
+      onOpened();
+    } else {
+      this.conn.on('open', onOpened);
+    }
 
     this.conn.on('data', (data) => {
       try {
@@ -144,11 +169,19 @@ export class TrucoNetwork {
 
   public sendMessage(msg: NetworkMessage) {
     if (this.conn && this.conn.open) {
-      this.conn.send(msg);
+      try {
+        this.conn.send(msg);
+      } catch (e) {
+        console.warn('Send failed, queueing message:', e);
+        this.pendingQueue.push(msg);
+      }
+    } else {
+      this.pendingQueue.push(msg);
     }
   }
 
   public destroy() {
+    this.pendingQueue = [];
     if (this.conn) {
       try { this.conn.close(); } catch {}
       this.conn = null;
