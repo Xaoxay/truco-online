@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Card as CardType, PlayerId, TrucoLevel, EnvidoType, RoomConfig } from '../engine/types';
 import { CardFace, CardBack } from './Card';
 import { PlayerHandsHoldingCards, OpponentHandsHoldingCards } from './HandsHoldingCards';
+import { TableDeck, CutModal } from './TableDeck';
 import ScoreSheet, { PhaseDisplay } from './ScoreSheet';
 import {
   soundCardPlay,
@@ -118,6 +119,35 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const [playerGesture, setPlayerGesture] = useState<string | null>(null);
   const [oppGesture, setOppGesture] = useState<string | null>(null);
   const [matchWinner, setMatchWinner] = useState<PlayerId | null>(null);
+  const [isShufflingDeck, setIsShufflingDeck] = useState(false);
+  const [cutData, setCutData] = useState<{
+    playerCard: CardType;
+    oppCard: CardType;
+    starterName: string;
+  } | null>(null);
+
+  const handleShuffleAndCut = () => {
+    soundButton();
+    setIsShufflingDeck(true);
+    setTimeout(() => {
+      setIsShufflingDeck(false);
+      const sample = dealHands();
+      const pCard = sample.playerHand[0];
+      const oCard = sample.opponentHand[0];
+      const pWins = pCard.power >= oCard.power;
+      const starter = pWins ? config.playerName : config.opponentName;
+      setCutData({
+        playerCard: pCard,
+        oppCard: oCard,
+        starterName: starter,
+      });
+      if (!pWins && turn !== 'opponent') {
+        setTurn('opponent');
+      } else if (pWins && turn !== 'player') {
+        setTurn('player');
+      }
+    }, 700);
+  };
 
   // Keyboard Shortcuts for PC Desktop Play
   useEffect(() => {
@@ -1058,18 +1088,23 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
             {/* The Felt Table (Center - Tapete verde embutido en madera) */}
             <div className="felt-center wood-table-felt-inset">
-              <div className="trick-slots-container">
-                {tricks.map((trick, idx) => (
-                  <div key={idx} className="trick-column">
-                    <span className="trick-label">{idx + 1}ª</span>
-                    <div className="trick-slot-opp">
-                      {trick.oppCard && <CardFace card={trick.oppCard} small disabled />}
+              <div className="table-center-layout">
+                {/* Mazo al costado para mezclar / cortar y ver quién arranca */}
+                <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
+
+                <div className="trick-slots-container">
+                  {tricks.map((trick, idx) => (
+                    <div key={idx} className="trick-column">
+                      <span className="trick-label">{idx + 1}ª</span>
+                      <div className="trick-slot-opp">
+                        {trick.oppCard && <CardFace card={trick.oppCard} small disabled />}
+                      </div>
+                      <div className="trick-slot-me">
+                        {trick.playerCard && <CardFace card={trick.playerCard} small disabled />}
+                      </div>
                     </div>
-                    <div className="trick-slot-me">
-                      {trick.playerCard && <CardFace card={trick.playerCard} small disabled />}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </>
@@ -1191,6 +1226,16 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         playerName={config.playerName}
         opponentName={config.opponentName}
       />
+
+      {/* Sorteo de Mano Modal (Ver quién arranca) */}
+      {cutData && (
+        <CutModal
+          playerCard={cutData.playerCard}
+          oppCard={cutData.oppCard}
+          starterName={cutData.starterName}
+          onClose={() => setCutData(null)}
+        />
+      )}
 
       {/* Match Over Victory Modal */}
       {matchWinner && (

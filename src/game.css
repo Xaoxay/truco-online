@@ -634,21 +634,21 @@ body {
 }
 
 /* ========================================================
-   NAIPES ESPAÑOLES TRADICIONALES ARGENTINOS (VECTORIALES)
+   NAIPES ESPAÑOLES TRADICIONALES FOURNIER (ARGENTINA)
    ======================================================== */
 .truco-card-argentina {
   position: relative;
   width: 74px;
-  height: 112px;
+  height: 114px;
   min-height: unset !important;
-  background: #fffdf8;
-  border-radius: 9px;
-  border: 1.5px solid #2b1810;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.3);
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 4px 5px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   cursor: pointer;
   touch-action: manipulation;
   overflow: hidden;
@@ -659,14 +659,14 @@ body {
   box-sizing: border-box;
 }
 
-/* Small card version (used on table slots, opponent cards, multi-seats) */
+/* Small card version (table slots, multi-seats) */
 .truco-card-argentina.small-card {
   width: 44px;
-  height: 64px;
+  height: 68px;
   min-height: unset !important;
-  padding: 2px 3px;
-  border-radius: 6px;
-  border-width: 1.2px;
+  padding: 0;
+  border-radius: 5px;
+  border-width: 1px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
 }
 
@@ -682,9 +682,9 @@ body {
 
 .truco-card-argentina.disabled,
 .truco-card-argentina:disabled {
-  opacity: 0.65;
+  opacity: 0.75;
   cursor: default;
-  filter: grayscale(0.2);
+  filter: grayscale(0.15);
 }
 
 /* Resplandor dorado para cartas bravas (Macho, Hembra, Sietes bravos) */
@@ -693,258 +693,317 @@ body {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), 0 0 14px rgba(245, 158, 11, 0.45);
 }
 
-/* SVG del Marco y la Pinta (se posiciona como fondo de la carta) */
-.card-border-svg {
+.card-fournier-img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+  border-radius: inherit;
+  pointer-events: none;
+  background: #ffffff;
+}
+
+.card-brava-glow-border {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  border: 2px solid #f59e0b;
+  border-radius: inherit;
+  box-shadow: inset 0 0 7px rgba(245, 158, 11, 0.6), 0 0 12px rgba(245, 158, 11, 0.5);
   pointer-events: none;
-  z-index: 1;
-}
-
-/* Índices (Número y Pip en las esquinas) */
-.card-indice {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.card-indice.top-left {
-  align-self: flex-start;
-}
-
-.card-indice.bottom-right {
-  align-self: flex-end;
-  transform: rotate(180deg);
-}
-
-.indice-num {
-  font-family: Georgia, serif;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.5px;
-}
-
-.small-card .indice-num {
-  font-size: 10px;
-}
-
-.indice-pip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
-}
-
-/* Ilustración Central del Naipe */
-.card-center-stage {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  pointer-events: none;
-  padding: 10px 8px;
-}
-
-.small-card .card-center-stage {
-  padding: 4px 3px;
-}
-
-/* Distribución de Pips Auténtica de Baraja Española */
-.pips-column {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  height: 72%;
-  width: 100%;
-}
-
-.pips-grid-2x2 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 76%;
-  height: 68%;
-}
-
-.pips-grid-5 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 80%;
-  height: 74%;
-  position: relative;
-}
-
-.pip-center-5 {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.pips-grid-6 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 78%;
-  height: 78%;
-}
-
-.pips-grid-7 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  width: 82%;
-  height: 82%;
-  position: relative;
-}
-
-.pip-center-top-7 {
-  margin-bottom: -4px;
-}
-
-.pips-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  height: 100%;
-}
-
-.pip-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Figuras Españolas (10 Sota, 11 Caballo, 12 Rey) */
-.figura-naipe-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.figura-pip-badge {
-  position: absolute;
-  top: 8px;
-  right: 6px;
   z-index: 3;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
-.small-card .figura-pip-badge {
-  top: 2px;
-  right: 2px;
-}
-
-.figura-badge {
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  background: #fef3c7;
-  color: #78350f;
-  padding: 1px 4px;
-  border-radius: 3px;
-  border: 0.5px solid #d97706;
-  margin-top: 1px;
-}
-
-.small-card .figura-badge {
-  font-size: 5.5px;
-  padding: 0 2px;
-}
-
-.ancho-macho-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.macho-laurel {
-  font-size: 11px;
-  margin-bottom: -3px;
-}
-
-.ancho-title {
-  font-size: 7px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  color: #1e3a5f;
-  margin-top: 2px;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 1px 4px;
-  border-radius: 3px;
-  border: 0.5px solid rgba(0, 0, 0, 0.15);
-}
-
-.ancho-title.hembra {
-  color: #15803d;
-}
-
-.ancho-title.as {
-  color: #b45309;
-}
-
-.ancho-title.siete {
-  color: #b45309;
-  background: #fef3c7;
-  border-color: #d97706;
-}
-
-.siete-bravo-glow {
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.45));
-}
-
-/* Dorso de Cartas Criollo (Guarda Pampa con Sol de Mayo) */
+/* Dorso de Cartas Fournier Criollo */
 .card-back-argentina {
   position: relative;
   width: 50px;
-  height: 74px;
-  border-radius: 7px;
-  border: 1.5px solid #f4c430;
+  height: 77px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-  background: #2a0b08;
+  background: #1b0e06;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .card-back-argentina.small-back {
-  width: 42px;
-  height: 60px;
+  width: 44px;
+  height: 68px;
   border-radius: 5px;
-  border-width: 1px;
 }
 
-.back-inner-frame {
+.card-back-img {
+  object-fit: cover;
+}
+
+/* Tapete de apoyo para las cartas en mano */
+.player-mat-tray {
   position: absolute;
-  inset: 2px;
-  border: 1px dashed rgba(244, 196, 48, 0.6);
-  border-radius: 4px;
-  overflow: hidden;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 320px;
+  height: 32px;
+  background: radial-gradient(ellipse at center, rgba(14, 52, 29, 0.9) 0%, rgba(7, 31, 17, 0.55) 100%);
+  border-top: 1.5px solid rgba(244, 196, 48, 0.4);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 1;
 }
 
-.guarda-pampa-pattern {
+/* ========================================================
+   MAZO DE TRUCO AL COSTADO DE LA MESA (3D STACK + SHUFFLE)
+   ======================================================== */
+.table-center-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 390px;
+}
+
+.table-side-deck {
+  position: relative;
+  width: 48px;
+  height: 72px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  perspective: 600px;
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-side-deck:hover {
+  transform: translateY(-3px) scale(1.05);
+}
+
+.table-side-deck:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.deck-shadow {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  filter: blur(4px);
+  transform: translateY(6px);
+}
+
+.deck-layer {
+  position: absolute;
   width: 100%;
   height: 100%;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #222;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.deck-layer-3 {
+  transform: translate(-3px, 3px) rotate(-3deg);
+  background: #eae5d9;
+}
+
+.deck-layer-2 {
+  transform: translate(2px, 2px) rotate(2deg);
+  background: #f4eee1;
+}
+
+.deck-layer-1 {
+  transform: translate(-1px, 1px) rotate(-1deg);
+  background: #faf6ed;
+}
+
+.deck-top-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-top-card .card-back-argentina.small-back {
+  width: 100%;
+  height: 100%;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+.deck-tag {
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #d97706, #92400e);
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  pointer-events: none;
+  white-space: nowrap;
+  border: 0.8px solid #fef3c7;
+}
+
+/* Animación de mezcla (Shuffling) */
+.table-side-deck.is-shuffling .deck-layer-3 {
+  animation: deckShuffleLeft 0.35s infinite alternate ease-in-out;
+}
+.table-side-deck.is-shuffling .deck-layer-2 {
+  animation: deckShuffleRight 0.35s 0.1s infinite alternate ease-in-out;
+}
+.table-side-deck.is-shuffling .deck-top-card {
+  animation: deckShuffleUp 0.35s 0.05s infinite alternate ease-in-out;
+}
+
+@keyframes deckShuffleLeft {
+  0% { transform: translate(-3px, 3px) rotate(-3deg); }
+  100% { transform: translate(-22px, -6px) rotate(-14deg); }
+}
+
+@keyframes deckShuffleRight {
+  0% { transform: translate(2px, 2px) rotate(2deg); }
+  100% { transform: translate(22px, -4px) rotate(14deg); }
+}
+
+@keyframes deckShuffleUp {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-12px) scale(1.05); }
+}
+
+/* ========================================================
+   MODAL DE SORTEO DE MANO (VER QUIÉN ARRANCA)
+   ======================================================== */
+.cut-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeInModal 0.25s ease-out;
+}
+
+.cut-modal-card {
+  background: radial-gradient(circle at top, #2b1810 0%, #170c06 100%);
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+  padding: 22px 20px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9), 0 0 24px rgba(244, 196, 48, 0.3);
+  animation: scaleUpModal 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUpModal {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.cut-title {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gold-light);
+  margin: 0 0 4px 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.cut-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0 0 16px 0;
+}
+
+.cut-cards-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cut-player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.cut-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.cut-card-name {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.cut-vs-badge {
+  font-size: 14px;
+  font-weight: 900;
+  color: #ef4444;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  padding: 4px 8px;
+  border-radius: 50%;
+}
+
+.cut-winner-banner {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #fef08a;
+  margin-bottom: 16px;
+}
+
+.btn-cut-continue {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border: 1.5px solid #86efac;
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+  transition: transform 0.15s ease, filter 0.15s ease;
+  width: 100%;
+}
+
+.btn-cut-continue:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
 }
 
 /* ========================================================
