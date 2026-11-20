@@ -117,7 +117,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const multiWinnersRef = useRef<(0 | 1 | 'tie')[]>([]);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const speechTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const playerSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const oppSpeechTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const multiSpeechTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const centerBannerTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const multiHandsRef = useRef<CardType[][]>([]);
   const multiInitialHandsRef = useRef<CardType[][]>([]);
@@ -205,7 +208,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const envidoModalTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // UI speech & alerts
-  const [speechText, setSpeechText] = useState<string | null>(null);
+  const [playerSpeech, setPlayerSpeech] = useState<{ text: string; type?: string } | null>(null);
+  const [oppSpeech, setOppSpeech] = useState<{ text: string; type?: string } | null>(null);
+  const [multiSpeech, setMultiSpeech] = useState<Record<number, { text: string; type?: string }>>({});
+  const [centerBanner, setCenterBanner] = useState<{ text: string; sub?: string; type?: string } | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [playerGesture, setPlayerGesture] = useState<string | null>(null);
   const [oppGesture, setOppGesture] = useState<string | null>(null);
@@ -312,10 +318,53 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     toastTimerRef.current = setTimeout(() => setToastMsg(null), 2500);
   };
 
-  const showSpeech = (text: string) => {
-    setSpeechText(text);
-    clearTimeout(speechTimerRef.current);
-    speechTimerRef.current = setTimeout(() => setSpeechText(null), 2800);
+  const formatCallText = (call: string): string => {
+    switch (call) {
+      case 'truco': return '¡TRUCO!';
+      case 'retruco': return '¡QUIERO RETRUCO!';
+      case 'vale4': return '¡VALE CUATRO!';
+      case 'envido': return '¡ENVIDO!';
+      case 'real_envido': return '¡REAL ENVIDO!';
+      case 'falta_envido': return '¡FALTA ENVIDO!';
+      case 'quiero': return '¡QUIERO!';
+      case 'no_quiero': return '¡NO QUIERO!';
+      case 'mazo': return '¡Me voy al mazo!';
+      default: return `¡${call.toUpperCase().replace('_', ' ')}!`;
+    }
+  };
+
+  const triggerPlayerSpeech = (text: string, type: string = 'canto', duration: number = 3200) => {
+    setPlayerSpeech({ text, type });
+    if (playerSpeechTimerRef.current) clearTimeout(playerSpeechTimerRef.current);
+    playerSpeechTimerRef.current = setTimeout(() => setPlayerSpeech(null), duration);
+  };
+
+  const triggerOppSpeech = (text: string, type: string = 'canto', duration: number = 3200) => {
+    setOppSpeech({ text, type });
+    if (oppSpeechTimerRef.current) clearTimeout(oppSpeechTimerRef.current);
+    oppSpeechTimerRef.current = setTimeout(() => setOppSpeech(null), duration);
+  };
+
+  const triggerSeatSpeech = (seatIdx: number, text: string, type: string = 'canto', duration: number = 3200) => {
+    setMultiSpeech(prev => ({ ...prev, [seatIdx]: { text, type } }));
+    if (multiSpeechTimersRef.current[seatIdx]) clearTimeout(multiSpeechTimersRef.current[seatIdx]);
+    multiSpeechTimersRef.current[seatIdx] = setTimeout(() => {
+      setMultiSpeech(prev => {
+        const copy = { ...prev };
+        delete copy[seatIdx];
+        return copy;
+      });
+    }, duration);
+  };
+
+  const triggerCenterBanner = (text: string, sub?: string, type: string = 'win', duration: number = 3600) => {
+    setCenterBanner({ text, sub, type });
+    if (centerBannerTimerRef.current) clearTimeout(centerBannerTimerRef.current);
+    centerBannerTimerRef.current = setTimeout(() => setCenterBanner(null), duration);
+  };
+
+  const showSpeech = (text: string, type: string = 'canto') => {
+    triggerOppSpeech(text, type);
   };
 
   // ─── Utilidades de partida ─────────────────────────────────────
@@ -369,6 +418,11 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const clearRoundTimers = () => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+    if (playerSpeechTimerRef.current) clearTimeout(playerSpeechTimerRef.current);
+    if (oppSpeechTimerRef.current) clearTimeout(oppSpeechTimerRef.current);
+    Object.values(multiSpeechTimersRef.current).forEach(clearTimeout);
+    multiSpeechTimersRef.current = {};
+    if (centerBannerTimerRef.current) clearTimeout(centerBannerTimerRef.current);
   };
 
   const resetRoundState = () => {
@@ -385,6 +439,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     roundEndedRef.current = false;
     if (envidoModalTimerRef.current) clearTimeout(envidoModalTimerRef.current);
     setEnvidoModal(null);
+    setPlayerSpeech(null);
+    setOppSpeech(null);
+    setMultiSpeech({});
+    setCenterBanner(null);
   };
 
   // ─── Multi-Player (2v2 and 3v3) Game Engine ───────────────────
@@ -526,9 +584,13 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
     if (winnerTeam === 0) {
       soundWinRound();
+      triggerPlayerSpeech(`🏆 ¡Mano nuestra! (+${pts} pts)`, 'win', 3200);
+      triggerCenterBanner(`🏆 ¡Nosotros ganamos la mano! (+${pts} pts)`, '', 'win', 3500);
       showToast(`¡Nosotros nos llevamos la mano! (+${pts} tantos)`);
     } else {
       soundLoseRound();
+      triggerOppSpeech(`🏆 ¡Mano nuestra! (+${pts} pts)`, 'win', 3200);
+      triggerCenterBanner(`🏆 ¡Ellos ganaron la mano! (+${pts} pts)`, '', 'win', 3500);
       showToast(`Ellos se llevan la mano (+${pts} tantos)`);
     }
 
@@ -623,6 +685,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
       if (envidoModalTimerRef.current) clearTimeout(envidoModalTimerRef.current);
+      if (playerSpeechTimerRef.current) clearTimeout(playerSpeechTimerRef.current);
+      if (oppSpeechTimerRef.current) clearTimeout(oppSpeechTimerRef.current);
+      Object.values(multiSpeechTimersRef.current).forEach(clearTimeout);
+      if (centerBannerTimerRef.current) clearTimeout(centerBannerTimerRef.current);
     };
   }, []);
 
@@ -670,18 +736,20 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         }
         soundTruco();
         setPendingCall({ type: msg.call, caller: 'opponent' });
-        showSpeech(`¡${msg.call.toUpperCase().replace('_', ' ')}!`);
+        triggerOppSpeech(formatCallText(msg.call), isEnvidoType(msg.call) ? 'envido' : 'canto');
         break;
       }
       case 'RESPONSE': {
         const pend = pendingCallRef.current;
         // Solo vale si yo tengo un canto esperando esa respuesta (evita duplicados)
         if (!pend || pend.caller !== 'player' || pend.type !== msg.toCall) break;
+        triggerOppSpeech(msg.resp === 'quiero' ? '¡QUIERO!' : '¡NO QUIERO!', isEnvidoType(msg.toCall) ? 'envido' : 'canto');
         handleCallResponse('opponent', msg.resp, msg.toCall);
         break;
       }
       case 'GO_MAZO': {
         if (roundEndedRef.current || matchOverRef.current) break;
+        triggerOppSpeech('¡Me voy al mazo!', 'canto');
         showToast(`${config.opponentName} se fue al mazo`);
         awardTrucoTo('player');
         break;
@@ -693,7 +761,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         break;
       }
       case 'CHAT': {
-        showSpeech(msg.text);
+        triggerOppSpeech(msg.text, 'info');
         break;
       }
       case 'GUEST_READY': {
@@ -909,12 +977,17 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     if (roundEndedRef.current || matchOverRef.current) return;
     roundEndedRef.current = true;
     const pts = trucoWinPoints(trucoLevelRef.current);
+    const winLabel = roundWinner === 'player' ? (config.playerName || 'Vos') : (config.opponentName || 'Rival');
 
     if (roundWinner === 'player') {
       soundWinRound();
+      triggerPlayerSpeech(`🏆 ¡Ganamos la mano! (+${pts} pts)`, 'win', 3200);
+      triggerCenterBanner(`🏆 ¡Ganó ${winLabel} la mano! (+${pts} pts)`, '', 'win', 3500);
       showToast(`¡Ganaste la mano! (+${pts} tantos)`);
     } else {
       soundLoseRound();
+      triggerOppSpeech(`🏆 ¡Mano para mí! (+${pts} pts)`, 'win', 3200);
+      triggerCenterBanner(`🏆 ¡Ganó ${winLabel} la mano! (+${pts} pts)`, '', 'win', 3500);
       showToast(`${config.opponentName} se lleva la mano (+${pts} tantos)`);
     }
 
@@ -930,9 +1003,19 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     roundEndedRef.current = true;
     const pts = trucoWinPoints(trucoLevelRef.current);
 
+    const winnerLabel = isMulti
+      ? (winner === 'player' ? 'Nosotros' : 'Ellos')
+      : (winner === 'player' ? (config.playerName || 'Vos') : (config.opponentName || 'Rival'));
+
     if (winner === 'player') {
+      soundWinRound();
+      triggerPlayerSpeech(`🏆 ¡Nos llevamos los puntos! (+${pts} pts)`, 'win', 3200);
+      triggerCenterBanner(`🏆 ¡Ganó ${winnerLabel} la mano! (+${pts} pts)`, '', 'win', 3500);
       showToast(`¡Ganaste los puntos de la mano! (+${pts} tantos)`);
     } else {
+      soundLoseRound();
+      triggerOppSpeech(`🏆 ¡Me llevo los puntos! (+${pts} pts)`, 'win', 3200);
+      triggerCenterBanner(`🏆 ¡Ganó ${winnerLabel} la mano! (+${pts} pts)`, '', 'win', 3500);
       showToast(`${config.opponentName} sumó ${pts} tantos`);
     }
 
@@ -973,7 +1056,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         botShouldCallEnvido(botHand, roundView(), scoreO, scoreP)) {
       soundCall();
       setPendingCall({ type: 'envido', caller: 'opponent' });
-      showSpeech(botPhrase('envido'));
+      triggerOppSpeech(botPhrase('envido'), 'envido');
       return;
     }
 
@@ -983,7 +1066,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       if (nextLevel && nextLevel !== 'none') {
         soundTruco();
         setPendingCall({ type: nextLevel, caller: 'opponent' });
-        showSpeech(botPhrase(nextLevel as any));
+        triggerOppSpeech(botPhrase(nextLevel as any), 'canto');
         return;
       }
     }
@@ -1041,7 +1124,12 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     soundTruco();
     setPendingCall({ type: callType, caller: who });
 
+    const callText = formatCallText(callType);
+    const bubbleType = isEnvidoType(callType) ? 'envido' : 'canto';
+
     if (who === 'player') {
+      triggerPlayerSpeech(callText, bubbleType);
+      if (isMulti) triggerSeatSpeech(0, callText, bubbleType);
       if (config.mode === 'online' && network) {
         network.sendMessage({ type: 'CALL', call: callType });
       } else if (config.mode === 'bot' || isMulti) {
@@ -1051,6 +1139,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         setPassPlayCurtain(true);
       }
     } else if (isPassAndPlay) {
+      triggerOppSpeech(callText, bubbleType);
       setPassPlayFor('player');
       setPassPlayCurtain(true);
     }
@@ -1080,7 +1169,9 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         ? getMultiTeamBestEnvidoHand(1)
         : (initialOppHandRef.current.length === 3 ? initialOppHandRef.current : oppHandCardsRef.current);
       const resp = botRespondEnvido(botEnvidoHand, callType, scoreO, scoreP, config.goal);
-      showSpeech(botPhrase(resp));
+      const respTxt = botPhrase(resp);
+      triggerOppSpeech(respTxt, resp === 'quiero' ? 'envido' : 'canto');
+      if (isMulti) triggerSeatSpeech(1, respTxt, resp === 'quiero' ? 'envido' : 'canto');
       handleCallResponse('opponent', resp, callType);
     } else {
       const botTrucoHand = isMulti ? getMultiTeamBestHand(1) : oppHandCardsRef.current;
@@ -1096,7 +1187,9 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         firstCardPlayed: firstCardPlayedRef.current,
       }, scoreO, scoreP);
 
-      showSpeech(botPhrase(resp));
+      const respTxt = botPhrase(resp);
+      triggerOppSpeech(respTxt, 'canto');
+      if (isMulti) triggerSeatSpeech(1, respTxt, 'canto');
       if (resp === 'retruco' || resp === 'vale4') {
         // Subir = aceptar el canto del jugador
         setTrucoLevel(callType as TrucoLevel);
@@ -1158,15 +1251,61 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       setEnvidoModal(null);
     }, 4500);
 
-    // Diálogo y notificación explícita mostrando ambos puntajes
-    if (playerWins) {
-      soundWinRound();
-      showToast(`¡Envido: ${pLabel} ${pEnvido} vs ${oLabel} ${oEnvido}! Ganó ${pLabel} (+${pts} tantos)`);
-      showSpeech(isPlayerTeamMano ? `¡${pEnvido} de Envido!` : `¡Son buenas! (Tengo ${oEnvido})`);
+    // Diálogo secuencial criollo en globos de texto:
+    // 1. La Mano canta sus tantos primero
+    // 2. El Pie responde ("¡X son mejores!" o "¡Son buenas!")
+    // 3. Festejo del ganador con globo dorado y banner central de mesa
+    if (isPlayerTeamMano) {
+      triggerPlayerSpeech(`¡Tengo ${pEnvido}!`, 'envido', 2200);
+      if (isMulti) triggerSeatSpeech(manoSeatRef.current, `¡Tengo ${pEnvido}!`, 'envido', 2200);
+
+      later(() => {
+        if (oEnvido > pEnvido) {
+          triggerOppSpeech(`¡${oEnvido} son mejores!`, 'envido', 2200);
+          if (isMulti) triggerSeatSpeech(1, `¡${oEnvido} son mejores!`, 'envido', 2200);
+        } else {
+          triggerOppSpeech('¡Son buenas!', 'canto', 2200);
+          if (isMulti) triggerSeatSpeech(1, '¡Son buenas!', 'canto', 2200);
+        }
+      }, 1200);
     } else {
-      showToast(`Envido: ${pLabel} ${pEnvido} vs ${oLabel} ${oEnvido} — Ganó ${oLabel} (+${pts} tantos)`);
-      showSpeech(`¡${oEnvido} son mejores!`);
+      triggerOppSpeech(`¡Tengo ${oEnvido}!`, 'envido', 2200);
+      if (isMulti) triggerSeatSpeech(manoSeatRef.current, `¡Tengo ${oEnvido}!`, 'envido', 2200);
+
+      later(() => {
+        if (pEnvido > oEnvido) {
+          triggerPlayerSpeech(`¡${pEnvido} son mejores!`, 'envido', 2200);
+          if (isMulti) triggerSeatSpeech(0, `¡${pEnvido} son mejores!`, 'envido', 2200);
+        } else {
+          triggerPlayerSpeech('¡Son buenas!', 'canto', 2200);
+          if (isMulti) triggerSeatSpeech(0, '¡Son buenas!', 'canto', 2200);
+        }
+      }, 1200);
     }
+
+    later(() => {
+      if (playerWins) {
+        soundWinRound();
+        triggerPlayerSpeech(`🏆 ¡Ganamos con ${pEnvido}!`, 'win', 3500);
+        triggerCenterBanner(
+          `🏆 ¡Ganó ${pLabel} el Envido! (+${pts} pts)`,
+          `${pEnvido} tantos ${pEnvido === oEnvido ? '(por Mano)' : `vs ${oEnvido}`}`,
+          'win',
+          3500
+        );
+        showToast(`¡Envido: ${pLabel} ${pEnvido} vs ${oLabel} ${oEnvido}! Ganó ${pLabel} (+${pts} tantos)`);
+      } else {
+        soundLoseRound();
+        triggerOppSpeech(`🏆 ¡Ganamos con ${oEnvido}!`, 'win', 3500);
+        triggerCenterBanner(
+          `🏆 ¡Ganó ${oLabel} el Envido! (+${pts} pts)`,
+          `${oEnvido} tantos ${pEnvido === oEnvido ? '(por Mano)' : `vs ${pEnvido}`}`,
+          'win',
+          3500
+        );
+        showToast(`Envido: ${pLabel} ${pEnvido} vs ${oLabel} ${oEnvido} — Ganó ${oLabel} (+${pts} tantos)`);
+      }
+    }, 2400);
 
     return ended;
   };
@@ -1204,6 +1343,16 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const handleCallResponse = (responder: PlayerId, resp: 'quiero' | 'no_quiero', callType: string) => {
     if (matchOverRef.current || roundEndedRef.current) return;
     const caller: PlayerId = otherPlayer(responder);
+    const respText = resp === 'quiero' ? '¡QUIERO!' : '¡NO QUIERO!';
+    const respType = isEnvidoType(callType) ? 'envido' : 'canto';
+
+    if (responder === 'player') {
+      triggerPlayerSpeech(respText, respType);
+      if (isMulti) triggerSeatSpeech(0, respText, respType);
+    } else {
+      triggerOppSpeech(respText, respType);
+      if (isMulti) triggerSeatSpeech(1, respText, respType);
+    }
 
     if (config.mode === 'online' && network && responder === 'player') {
       network.sendMessage({ type: 'RESPONSE', resp, toCall: callType });
@@ -1211,14 +1360,24 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
     setPendingCall(null);
 
+    const pLabel = isMulti ? 'Nosotros' : (config.playerName || 'Vos');
+    const oLabel = isMulti ? 'Ellos' : (config.opponentName || 'Rival');
+
     // 1. Envido Resolution
     if (isEnvidoType(callType)) {
       setEnvidoPlayed(true);
       if (resp === 'no_quiero') {
         const pts = envidoNoQuieroPoints(callType);
+        const winLabel = caller === 'player' ? pLabel : oLabel;
         if (caller === 'player') {
+          soundWinRound();
+          triggerPlayerSpeech(`🏆 ¡No quiso! (+${pts} ${pts === 1 ? 'punto' : 'puntos'})`, 'win', 3200);
+          triggerCenterBanner(`🏆 ¡Ganó ${winLabel} el Envido! (+${pts} pts)`, 'El rival no quiso', 'win', 3200);
           showToast(`¡Ganaste el Envido! (+${pts} tantos)`);
         } else {
+          soundLoseRound();
+          triggerOppSpeech(`🏆 ¡No quiso! (+${pts} ${pts === 1 ? 'punto' : 'puntos'})`, 'win', 3200);
+          triggerCenterBanner(`🏆 ¡Ganó ${winLabel} el Envido! (+${pts} pts)`, 'No querido', 'win', 3200);
           showToast(`${config.opponentName} sumó ${pts} tantos de Envido`);
         }
         if (addScore(caller, pts)) return;
@@ -1251,11 +1410,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     if (matchOverRef.current || roundEndedRef.current) return;
     soundButton();
     if (who === 'player') {
+      triggerPlayerSpeech('¡Me voy al mazo!', 'canto');
+      if (isMulti) triggerSeatSpeech(0, '¡Me voy al mazo!', 'canto');
       showToast('Te fuiste al mazo');
       if (config.mode === 'online' && network) {
         network.sendMessage({ type: 'GO_MAZO' });
       }
     } else {
+      triggerOppSpeech('¡Me voy al mazo!', 'canto');
+      if (isMulti) triggerSeatSpeech(1, '¡Me voy al mazo!', 'canto');
       showToast(`${config.opponentName} se fue al mazo`);
     }
     awardTrucoTo(otherPlayer(who));
@@ -1281,7 +1444,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   const handleSendChat = (text: string) => {
     soundButton();
-    showSpeech(text);
+    triggerPlayerSpeech(text, 'info');
     if (config.mode === 'online' && network) {
       network.sendMessage({ type: 'CHAT', text, from: config.playerName });
     }
@@ -1301,6 +1464,11 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         className={`seat-chip team-${seat.team} ${isTurn ? 'current-turn' : ''}`}
         aria-label={`${seat.name} ${isTurn ? '(Turno actual)' : ''} ${isMano ? '(Mano)' : ''}`}
       >
+        {multiSpeech[seatIdx] && (
+          <div className={`speech-bubble seat-bubble active ${multiSpeech[seatIdx].type || ''}`}>
+            {multiSpeech[seatIdx].text}
+          </div>
+        )}
         <span className="seat-avatar">{seat.avatar}</span>
         <div className="seat-info-col">
           <div className="seat-name-row">
@@ -1423,7 +1591,12 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         {/* Center Felt / Table Area */}
         {isMulti ? (
           <div className="table-felt-multi">
-            {speechText && <div className="speech-bubble active" style={{ top: 20 }}>{speechText}</div>}
+            {centerBanner && (
+              <div className={`center-call-banner active ${centerBanner.type || ''}`}>
+                <span className="banner-title">{centerBanner.text}</span>
+                {centerBanner.sub && <span className="banner-sub">{centerBanner.sub}</span>}
+              </div>
+            )}
 
             {/* Top Row: Partner (in 2v2) or Partners/Rivals (in 3v3) */}
             <div className="table-row-top">
@@ -1481,12 +1654,22 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                 </div>
               )}
 
-              {/* Speech Balloon */}
-              {speechText && <div className="speech-bubble active">{speechText}</div>}
+              {/* Speech Balloon para el Oponente */}
+              {oppSpeech && (
+                <div className={`speech-bubble opp-bubble active ${oppSpeech.type || ''}`}>
+                  {oppSpeech.text}
+                </div>
+              )}
             </div>
 
             {/* The Felt Table (Center - Tapete verde embutido en madera) */}
             <div className="felt-center wood-table-felt-inset">
+              {centerBanner && (
+                <div className={`center-call-banner active ${centerBanner.type || ''}`}>
+                  <span className="banner-title">{centerBanner.text}</span>
+                  {centerBanner.sub && <span className="banner-sub">{centerBanner.sub}</span>}
+                </div>
+              )}
               <div className="table-center-layout">
                 {/* Mazo al costado para mezclar / cortar y ver quién arranca */}
                 <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
@@ -1515,6 +1698,13 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           {playerGesture && (
             <div className="floating-gesture-bubble player-gesture-pop">
               {playerGesture}
+            </div>
+          )}
+
+          {/* Speech Balloon para el Jugador */}
+          {playerSpeech && (
+            <div className={`speech-bubble player-bubble active ${playerSpeech.type || ''}`}>
+              {playerSpeech.text}
             </div>
           )}
 
