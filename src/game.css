@@ -31,21 +31,28 @@
   -webkit-user-select: none;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 body {
   background: #0d0603;
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  width: 100%;
-  height: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
-  margin: 0;
-  padding: 0;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  overflow: hidden;
-  -webkit-text-size-adjust: 100%;
 }
 
 /* App Viewport Container */
@@ -62,6 +69,10 @@ body {
 }
 
 .app-viewport > * {
+  min-height: 0;
+}
+
+.app-viewport button {
   min-height: 0;
 }
 
@@ -176,22 +187,12 @@ body {
 }
 
 .fan-center {
-  transform: rotate(0deg) translate(0, -3px);
+  transform: rotate(0deg) translate(0, -4px);
   z-index: 2;
 }
 
 .fan-right {
   transform: rotate(14deg) translate(26px, 2px);
-  z-index: 1;
-}
-
-.fan-center {
-  transform: rotate(2deg) translate(0px, -4px);
-  z-index: 2;
-}
-
-.fan-right {
-  transform: rotate(16deg) translate(42px, 8px);
   z-index: 1;
 }
 
@@ -3206,4 +3207,530 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* ─── Mobile Responsive Fixes ─────────────────────────────────── */
+.home-screen {
+  width: 100%;
+  gap: 6px;
+  padding: max(10px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+}
 
+.home-name-input-box {
+  gap: 8px;
+}
+
+.home-name-input-box input {
+  font-size: 16px;
+  min-width: 0;
+  flex: 0 1 140px;
+  width: auto;
+}
+
+.home-menu-grid-2col > *,
+.menu-btn {
+  min-width: 0;
+}
+
+.lobby-screen {
+  width: 100%;
+  padding: max(12px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+}
+
+.code-val {
+  font-size: clamp(26px, 8vw, 38px);
+  letter-spacing: clamp(3px, 1.2vw, 6px);
+}
+
+.slot-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.slot-left > div:last-child {
+  min-width: 0;
+}
+
+.slot-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-status {
+  flex-shrink: 0;
+}
+
+.join-name-row {
+  gap: 10px;
+}
+
+.join-name-row input {
+  font-size: 16px;
+  min-width: 0;
+  flex: 1;
+  max-width: 170px;
+  width: auto;
+}
+
+.input-native-room-code {
+  min-width: 0;
+  width: 100%;
+  font-size: clamp(18px, 5.5vw, 24px);
+  letter-spacing: clamp(2px, 1vw, 4px);
+  padding: 10px;
+}
+
+.btn-paste-code {
+  flex-shrink: 0;
+  height: 48px;
+}
+
+.score-col {
+  min-width: 0;
+}
+
+.game-table-container,
+.game-table-container.wooden-table {
+  width: 100%;
+  padding: max(8px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom));
+}
+
+.game-hud {
+  width: 100%;
+  gap: 6px;
+  min-width: 0;
+}
+
+.anotador-mini {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  gap: 8px;
+}
+
+.team-lbl {
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.round-info-pill {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+
+.hud-actions-right {
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.btn-game-menu {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+}
+
+.felt-center.wood-table-felt-inset {
+  width: 100%;
+  max-width: 390px;
+  padding: 8px 10px;
+}
+
+.table-center-layout {
+  width: 100%;
+  max-width: 380px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.trick-slots-container {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  max-width: 320px;
+}
+
+.trick-column {
+  min-width: 0;
+  height: 132px;
+}
+
+.player-area {
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
+}
+
+.player-callouts-bar {
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow-x: visible;
+  gap: 5px;
+  width: 100%;
+  padding: 2px;
+}
+
+.quick-throw-cards-bar {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  gap: 5px;
+}
+
+.senas-drawer {
+  justify-content: safe center;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+
+.senas-drawer::-webkit-scrollbar {
+  display: none;
+}
+
+.table-felt-multi {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  width: 100%;
+  max-width: 520px;
+  padding: 4px;
+  gap: 6px;
+}
+
+.table-row-top {
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.table-row-middle {
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.table-center-felt-cards {
+  flex: 1;
+  min-width: 0;
+  min-height: 92px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 6px;
+  gap: 6px;
+}
+
+.seat-chip {
+  min-width: 0;
+  max-width: 140px;
+  flex-shrink: 1;
+}
+
+@media (max-width: 767px) {
+  .desktop-view.app-viewport {
+    max-width: none;
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .btn-layout-toggle {
+    display: none;
+  }
+}
+
+@media (max-height: 760px), (max-width: 420px) {
+  .game-table-container,
+  .game-table-container.wooden-table {
+    padding: max(6px, env(safe-area-inset-top)) 8px max(6px, env(safe-area-inset-bottom));
+  }
+
+  .game-hud {
+    padding: 4px 8px;
+    border-radius: 12px;
+    margin-bottom: 2px;
+  }
+
+  .anotador-mini {
+    padding: 3px 8px;
+    gap: 6px;
+  }
+
+  .team-lbl {
+    font-size: 8px;
+    max-width: 52px;
+  }
+
+  .team-pts {
+    font-size: 16px;
+  }
+
+  .round-info-pill {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .opponent-badge {
+    padding: 2px 10px;
+    margin-bottom: 4px;
+  }
+
+  .felt-center.wood-table-felt-inset {
+    padding: 6px 8px;
+    border-radius: 16px;
+  }
+
+  .table-center-layout {
+    gap: 6px;
+  }
+
+  .table-side-deck {
+    width: 38px;
+    height: 58px;
+  }
+
+  .trick-slots-container {
+    gap: 4px;
+  }
+
+  .trick-column {
+    height: 112px;
+    padding: 3px 2px;
+    border-radius: 11px;
+  }
+
+  .trick-slot-opp,
+  .trick-slot-me {
+    width: 36px;
+    height: 50px;
+  }
+
+  .truco-card-argentina.small-card {
+    width: 36px;
+    height: 52px;
+    border-radius: 5px;
+  }
+
+  .truco-card-argentina {
+    width: 64px;
+    height: 98px;
+    border-radius: 8px;
+  }
+
+  .player-hands-holder {
+    height: 108px;
+    max-width: 310px;
+  }
+
+  .player-badge-container {
+    margin-bottom: 3px;
+  }
+
+  .player-badge {
+    padding: 3px 10px;
+  }
+
+  .player-callouts-bar {
+    margin-bottom: 4px;
+    gap: 4px;
+  }
+
+  .btn-callout {
+    padding: 4px 9px;
+    font-size: 11px;
+    min-height: 30px !important;
+  }
+
+  .quick-throw-cards-bar {
+    padding: 3px 6px;
+    margin: 2px 0 4px;
+    gap: 4px;
+  }
+
+  .btn-throw-chip {
+    padding: 3px 9px !important;
+    min-height: 30px !important;
+    font-size: 12px !important;
+  }
+
+  .senas-drawer {
+    margin-top: 3px;
+    padding: 4px 8px;
+    gap: 5px;
+  }
+
+  .senas-label {
+    font-size: 9.5px;
+  }
+
+  .btn-sena-gesture {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .card-back-argentina.small-back {
+    width: 34px;
+    height: 50px;
+  }
+
+  .table-row-top {
+    gap: 4px;
+  }
+
+  .seat-chip {
+    padding: 3px 6px;
+    gap: 4px;
+    font-size: 10px;
+    max-width: 108px;
+    border-radius: 12px;
+  }
+
+  .seat-avatar {
+    font-size: 12px;
+  }
+
+  .seat-name {
+    max-width: 56px;
+  }
+
+  .seat-role-pill.mano,
+  .seat-turn-pill {
+    font-size: 8px;
+    padding: 0 3px;
+  }
+
+  .table-center-felt-cards {
+    min-height: 78px;
+    padding: 5px;
+    gap: 4px;
+  }
+
+  .score-modal,
+  .join-modal,
+  .join-modal-card,
+  .envido-modal-card,
+  .cut-modal-card {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .stick-svg {
+    width: 38px;
+    height: 38px;
+  }
+
+  .envido-box-points {
+    font-size: 32px;
+  }
+}
+
+@media (max-height: 660px) {
+  .trick-column {
+    height: 96px;
+  }
+
+  .trick-slot-opp,
+  .trick-slot-me {
+    width: 32px;
+    height: 44px;
+  }
+
+  .truco-card-argentina.small-card {
+    width: 32px;
+    height: 44px;
+  }
+
+  .truco-card-argentina {
+    width: 58px;
+    height: 88px;
+  }
+
+  .player-hands-holder {
+    height: 96px;
+  }
+
+  .card-back-argentina.small-back {
+    width: 30px;
+    height: 44px;
+  }
+
+  .senas-drawer {
+    padding: 3px 6px;
+    gap: 4px;
+  }
+
+  .btn-sena-gesture {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 359px) {
+  .home-screen {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .home-menu-grid-2col {
+    gap: 5px;
+  }
+
+  .menu-btn-compact {
+    padding: 6px;
+  }
+
+  .home-footer {
+    font-size: 9.5px;
+  }
+
+  .senas-label {
+    display: none;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .game-hud {
+    padding: 3px 8px;
+  }
+
+  .opponent-badge {
+    margin-bottom: 2px;
+  }
+
+  .card-back-argentina.small-back {
+    width: 26px;
+    height: 38px;
+  }
+
+  .trick-column {
+    height: 78px;
+  }
+
+  .trick-slot-opp,
+  .trick-slot-me {
+    width: 28px;
+    height: 36px;
+  }
+
+  .truco-card-argentina.small-card {
+    width: 26px;
+    height: 36px;
+  }
+
+  .truco-card-argentina {
+    width: 48px;
+    height: 72px;
+  }
+
+  .player-hands-holder {
+    height: 78px;
+  }
+
+  .player-badge-container,
+  .senas-drawer {
+    display: none;
+  }
+}

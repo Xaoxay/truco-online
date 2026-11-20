@@ -34,9 +34,22 @@ function MainApp() {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [initialRoomCode, setInitialRoomCode] = useState('');
   const [pendingRoundData, setPendingRoundData] = useState<any>(null);
-  const [desktopLayout, setDesktopLayout] = useState(() => {
-    return typeof window !== 'undefined' && window.innerWidth >= 768;
-  });
+  const checkDesktopViewport = () =>
+    typeof window !== 'undefined' && window.innerWidth >= 900 && window.innerHeight >= 600;
+
+  const [canUseDesktop, setCanUseDesktop] = useState(checkDesktopViewport);
+  const [manualDesktop, setManualDesktop] = useState<boolean | null>(null);
+  const desktopLayout = canUseDesktop ? (manualDesktop ?? true) : false;
+
+  useEffect(() => {
+    const onResize = () => setCanUseDesktop(checkDesktopViewport());
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
 
   const configRef = useRef(config);
   useEffect(() => {
@@ -44,7 +57,7 @@ function MainApp() {
   }, [config]);
 
   const toggleDesktop = () => {
-    setDesktopLayout(prev => !prev);
+    setManualDesktop(prev => !(prev ?? canUseDesktop));
   };
 
   const networkRef = useRef<TrucoNetwork | null>(null);
@@ -206,7 +219,7 @@ function MainApp() {
           onOpenJoinModal={() => setJoinModalOpen(true)}
           onOpenAnotador={() => setView('anotador')}
           isDesktop={desktopLayout}
-          onToggleDesktop={toggleDesktop}
+          onToggleDesktop={canUseDesktop ? toggleDesktop : undefined}
         />
       )}
 
@@ -235,7 +248,7 @@ function MainApp() {
           config={config}
           network={networkRef.current}
           isDesktop={desktopLayout}
-          onToggleLayout={toggleDesktop}
+          onToggleLayout={canUseDesktop ? toggleDesktop : undefined}
           initialRoundData={pendingRoundData}
           onExit={() => {
             networkRef.current?.destroy();
