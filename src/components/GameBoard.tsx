@@ -1523,6 +1523,35 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     );
   };
 
+  const renderFixedTrickSlot = (seatIdx: number) => {
+    const seat = defaultMultiSeats[seatIdx];
+    if (!seat) return null;
+    const play = currentTrickPlays.find(p => p.seatIndex === seatIdx);
+    const isTurn = currentTurnSeat === seatIdx;
+
+    return (
+      <div
+        key={seatIdx}
+        className={`fixed-trick-slot seat-slot-${seatIdx} team-${seat.team} ${isTurn ? 'is-waiting-turn' : ''} ${play ? 'has-card' : 'empty'}`}
+        title={`Lugar fijo de ${seat.name}`}
+      >
+        <span className={`slot-owner-tag team-${seat.team}`}>
+          {seat.name.split(' ')[0]}
+        </span>
+        <div className="fixed-slot-card-box">
+          {play ? (
+            <CardFace card={play.card} small disabled className="table-played-card fixed-card-active" />
+          ) : (
+            <div className={`empty-card-placeholder ${isTurn ? 'turn-active' : ''}`}>
+              <span className="placeholder-avatar">{seat.avatar}</span>
+              {isTurn && <span className="placeholder-turn-dot" />}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`game-layout-wrapper ${isDesktop ? 'desktop-board-layout' : ''}`}>
       {/* Desktop Matchstick Sidebar */}
@@ -1651,31 +1680,44 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             <div className="table-row-middle">
               {renderSeatStation(1, 'left')}
 
-              {/* Cards played in this trick */}
+              {/* Cards played in this trick - Lugares Fijos para Cada Jugador */}
               <div className="table-center-felt-cards">
                 <div className="turn-flow-ring" aria-hidden="true" />
                 <div className="multi-deck-pos">
                   <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
                 </div>
 
-                {currentTrickPlays.length === 0 ? (
-                  <div className="table-empty-felt-placeholder">
-                    <span className="table-felt-emblem">🃏</span>
-                    <span className="table-felt-title">Mesa • {currentTrick + 1}ª Mano</span>
-                    <span className="table-felt-sub">Partida {matchType} a {config.goal} tantos</span>
-                  </div>
-                ) : (
-                  <div className="table-played-cards-cluster">
-                    {currentTrickPlays.map((p, idx) => (
-                      <div key={idx} className={`multi-played-card team-${p.team}`}>
-                        <span className={`card-owner-tag team-${p.team}`}>
-                          {p.playerName.split(' ')[0]}
-                        </span>
-                        <CardFace card={p.card} small disabled className="table-played-card" />
+                <div className="trick-felt-header">
+                  <span className="trick-felt-badge">MESA • {currentTrick + 1}ª BAZA</span>
+                </div>
+
+                <div className={`fixed-trick-grid fixed-grid-${matchType}`}>
+                  {matchType === '2v2' ? (
+                    <>
+                      <div className="fixed-grid-row">
+                        {renderFixedTrickSlot(1)}
+                        {renderFixedTrickSlot(2)}
+                        {renderFixedTrickSlot(3)}
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="fixed-grid-row">
+                        {renderFixedTrickSlot(0)}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="fixed-grid-row">
+                        {renderFixedTrickSlot(2)}
+                        {renderFixedTrickSlot(3)}
+                        {renderFixedTrickSlot(4)}
+                      </div>
+                      <div className="fixed-grid-row">
+                        {renderFixedTrickSlot(1)}
+                        {renderFixedTrickSlot(0)}
+                        {renderFixedTrickSlot(5)}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {renderSeatStation(matchType === '2v2' ? 3 : 5, 'right')}
