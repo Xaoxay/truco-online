@@ -1454,7 +1454,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                       <span className={`card-owner-tag team-${p.team}`}>
                         {p.playerName.split(' ')[0]}
                       </span>
-                      <CardFace card={p.card} small disabled />
+                      <CardFace card={p.card} small disabled className="table-played-card" />
                     </div>
                   ))
                 )}
@@ -1493,13 +1493,13 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
                 <div className="trick-slots-container">
                   {tricks.map((trick, idx) => (
-                    <div key={idx} className="trick-column">
+                    <div key={idx} className={`trick-column ${trick.winner ? `trick-won-${trick.winner}` : ''}`}>
                       <span className="trick-label">{idx + 1}ª</span>
-                      <div className="trick-slot-opp">
-                        {trick.oppCard && <CardFace card={trick.oppCard} small disabled />}
+                      <div className={`trick-slot-opp ${trick.winner === 'opponent' ? 'slot-winner' : ''}`}>
+                        {trick.oppCard && <CardFace card={trick.oppCard} small disabled className="table-played-card" />}
                       </div>
-                      <div className="trick-slot-me">
-                        {trick.playerCard && <CardFace card={trick.playerCard} small disabled />}
+                      <div className={`trick-slot-me ${trick.winner === 'player' ? 'slot-winner' : ''}`}>
+                        {trick.playerCard && <CardFace card={trick.playerCard} small disabled className="table-played-card" />}
                       </div>
                     </div>
                   ))}

@@ -93,11 +93,12 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
 
   const symbol = suitSymbols[card.suit] || '🃏';
   const color = suitColors[card.suit] || '#222';
+  const isTableCard = className.includes('table-played-card');
 
   return (
     <button
       type="button"
-      className={`truco-card-argentina ${isBrava ? 'carta-brava' : ''} ${disabled ? 'disabled' : ''} ${small ? 'small-card' : ''} ${className}`}
+      className={`truco-card-argentina ${isBrava ? 'carta-brava' : ''} ${disabled && !isTableCard ? 'disabled' : ''} ${small ? 'small-card' : ''} ${className}`}
       onClick={handlePointerUp}
       onTouchEnd={(e) => {
         if (!disabled && onClick) {
@@ -105,7 +106,7 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
           handlePointerUp(e);
         }
       }}
-      disabled={disabled}
+      disabled={isTableCard ? false : disabled}
       title={card.label}
       aria-label={card.label}
     >
@@ -115,7 +116,7 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
           alt={card.label}
           className="card-fournier-img"
           loading="eager"
-          decoding="async"
+          decoding="sync"
           draggable={false}
           onError={handleError}
         />

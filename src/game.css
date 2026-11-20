@@ -752,7 +752,7 @@ body {
 
 .trick-column {
   flex: 1;
-  height: 125px;
+  height: 142px;
   background: rgba(0, 0, 0, 0.32);
   border: 1.5px solid rgba(244, 196, 48, 0.22);
   border-radius: 14px;
@@ -769,19 +769,22 @@ body {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
-  color: rgba(244, 196, 48, 0.32);
+  color: rgba(244, 196, 48, 0.35);
   letter-spacing: 0.5px;
   pointer-events: none;
+  z-index: 1;
 }
 
 .trick-slot-opp, .trick-slot-me {
-  width: 48px;
-  height: 58px;
+  width: 52px;
+  height: 66px;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 2;
 }
 
 /* Player Area (Bottom) */
@@ -912,13 +915,14 @@ body {
 
 /* Small card version (table slots, multi-seats) */
 .truco-card-argentina.small-card {
-  width: 44px;
-  height: 68px;
+  width: 48px;
+  height: 72px;
+  aspect-ratio: 400 / 615;
   min-height: unset !important;
   padding: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   border-width: 1px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .truco-card-argentina:hover:not(:disabled) {
@@ -933,11 +937,51 @@ body {
   transition: transform 70ms var(--ease-out);
 }
 
-.truco-card-argentina.disabled,
-.truco-card-argentina:disabled {
-  opacity: 0.75;
+.truco-card-argentina.disabled:not(.table-played-card),
+.truco-card-argentina:disabled:not(.table-played-card) {
+  opacity: 0.85;
   cursor: default;
-  filter: grayscale(0.15);
+}
+
+/* ========================================================
+   CARTAS TIRADAS EN LA MESA (SLOTS DE TRUCO & MULTIJUGADOR)
+   NUNCA APAGAR COLOR - NITIDEZ MÁXIMA
+   ======================================================== */
+.truco-card-argentina.table-played-card,
+.trick-slot-opp .truco-card-argentina,
+.trick-slot-me .truco-card-argentina,
+.multi-played-card .truco-card-argentina {
+  opacity: 1 !important;
+  filter: none !important;
+  cursor: default !important;
+  border-color: rgba(0, 0, 0, 0.4) !important;
+  background: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75), 0 2px 5px rgba(0, 0, 0, 0.4) !important;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  pointer-events: none;
+  animation: cardThrowPop 220ms cubic-bezier(0.18, 0.89, 0.32, 1.25);
+}
+
+.truco-card-argentina.table-played-card .card-fournier-img,
+.trick-slot-opp .card-fournier-img,
+.trick-slot-me .card-fournier-img,
+.multi-played-card .card-fournier-img {
+  filter: none !important;
+  opacity: 1 !important;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+@keyframes cardThrowPop {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.85) translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* Resplandor dorado para cartas bravas (Macho, Hembra, Sietes bravos) */
@@ -954,6 +998,10 @@ body {
   border-radius: inherit;
   pointer-events: none;
   background: #ffffff;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .card-brava-glow-border {
@@ -2709,17 +2757,17 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   }
 
   .trick-column {
-    height: 98px;
-    padding: 2px;
+    height: 136px;
+    padding: 3px 2px;
   }
 
   .trick-slots-container {
-    max-width: 290px;
+    max-width: 310px;
   }
 
   .trick-slot-opp, .trick-slot-me {
-    width: 42px;
-    height: 48px;
+    width: 48px;
+    height: 64px;
   }
 
   .truco-card-argentina {
@@ -2776,7 +2824,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 
 @media (max-height: 620px) {
   .trick-column {
-    height: 84px;
+    height: 120px;
   }
 
   .truco-card-argentina {
@@ -3495,21 +3543,21 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   }
 
   .trick-column {
-    height: 112px;
+    height: 134px;
     padding: 3px 2px;
-    border-radius: 11px;
+    border-radius: 12px;
   }
 
   .trick-slot-opp,
   .trick-slot-me {
-    width: 36px;
-    height: 50px;
+    width: 46px;
+    height: 62px;
   }
 
   .truco-card-argentina.small-card {
-    width: 36px;
-    height: 52px;
-    border-radius: 5px;
+    width: 44px;
+    height: 64px;
+    border-radius: 6px;
   }
 
   .truco-card-argentina {
@@ -3628,18 +3676,19 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 
 @media (max-height: 660px) {
   .trick-column {
-    height: 96px;
+    height: 122px;
   }
 
   .trick-slot-opp,
   .trick-slot-me {
-    width: 32px;
-    height: 44px;
+    width: 44px;
+    height: 58px;
   }
 
   .truco-card-argentina.small-card {
-    width: 32px;
-    height: 44px;
+    width: 42px;
+    height: 60px;
+    border-radius: 6px;
   }
 
   .truco-card-argentina {
@@ -3706,18 +3755,18 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   }
 
   .trick-column {
-    height: 78px;
+    height: 96px;
   }
 
   .trick-slot-opp,
   .trick-slot-me {
-    width: 28px;
-    height: 36px;
+    width: 34px;
+    height: 44px;
   }
 
   .truco-card-argentina.small-card {
-    width: 26px;
-    height: 36px;
+    width: 32px;
+    height: 44px;
   }
 
   .truco-card-argentina {
