@@ -136,9 +136,9 @@ body {
 /* 3D Card Fan Preview en Portada con Naipes Españoles Auténticos */
 .home-cards-fan {
   position: relative;
-  height: 94px;
+  height: 76px;
   width: 100%;
-  margin: 6px 0 6px;
+  margin: 4px 0 4px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -146,8 +146,8 @@ body {
 
 .fan-card {
   position: absolute;
-  width: 62px;
-  height: 94px;
+  width: 52px;
+  height: 76px;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -160,18 +160,18 @@ body {
 }
 
 .home-cards-fan .truco-card-argentina {
-  width: 62px !important;
-  height: 94px !important;
+  width: 52px !important;
+  height: 76px !important;
   opacity: 1 !important;
   filter: none !important;
   border-radius: 6px !important;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65), 0 2px 5px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65), 0 2px 4px rgba(0, 0, 0, 0.35) !important;
   border: 1px solid rgba(0, 0, 0, 0.35) !important;
   cursor: pointer;
 }
 
 .fan-left {
-  transform: rotate(-14deg) translate(-32px, 2px);
+  transform: rotate(-14deg) translate(-26px, 2px);
   z-index: 3;
 }
 
@@ -181,7 +181,7 @@ body {
 }
 
 .fan-right {
-  transform: rotate(14deg) translate(32px, 2px);
+  transform: rotate(14deg) translate(26px, 2px);
   z-index: 1;
 }
 
@@ -252,13 +252,19 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+}
+
+.home-menu-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
 }
 
 .menu-btn {
   background: linear-gradient(180deg, #3d2215 0%, #201109 100%);
   border: 1.5px solid #57321e;
-  border-radius: 14px;
+  border-radius: 13px;
   padding: 8px 12px;
   display: flex;
   align-items: center;
@@ -267,7 +273,7 @@ body {
   text-align: left;
   box-shadow: 0 3px 10px rgba(0,0,0,0.4);
   transition: all 0.15s;
-  min-height: 46px;
+  min-height: 44px;
 }
 
 .menu-btn:active {
@@ -291,9 +297,62 @@ body {
   font-weight: 700;
 }
 
+.menu-btn-compact {
+  padding: 6px 8px;
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.menu-btn-compact .menu-icon {
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.3);
+}
+
+.menu-btn-compact .menu-text {
+  margin-left: 6px;
+}
+
+.menu-btn-compact .menu-text strong {
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-btn-compact .menu-text span {
+  font-size: 9.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+
+.menu-btn-compact-full {
+  padding: 6px 12px;
+  min-height: 38px;
+  border-radius: 11px;
+}
+
+.menu-btn-compact-full .menu-icon {
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
+}
+
+.menu-btn-compact-full .menu-text strong {
+  font-size: 11.5px;
+}
+
+.menu-btn-compact-full .menu-text span {
+  font-size: 9px;
+}
+
 .menu-icon {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 9px;
   background: rgba(0,0,0,0.25);
   display: flex;
@@ -2200,9 +2259,19 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 }
 
 .desktop-view .home-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.desktop-view .home-menu-grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.desktop-view .menu-btn-hero {
+  min-height: 56px;
 }
 
 .desktop-view .menu-btn {

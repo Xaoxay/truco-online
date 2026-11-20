@@ -84,14 +84,16 @@ export default function HomeScreen({
 
   return (
     <div className="home-screen">
-      <div className="home-top-bar">
-        <span className="platform-tag">{isDesktop ? '🖥️ Modo PC Web' : '📱 Modo Móvil'}</span>
-        {onToggleDesktop && (
-          <button className="btn-layout-toggle" onClick={onToggleDesktop}>
-            {isDesktop ? '📱 Ver como Celular' : '🖥️ Pantalla Completa PC'}
-          </button>
-        )}
-      </div>
+      {isDesktop && (
+        <div className="home-top-bar">
+          <span className="platform-tag">🖥️ Modo PC Web</span>
+          {onToggleDesktop && (
+            <button className="btn-layout-toggle" onClick={onToggleDesktop}>
+              📱 Ver como Celular
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="home-hero">
         <div className="home-badge">🇦🇷 TRUCO ARGENTINO</div>
@@ -140,9 +142,9 @@ export default function HomeScreen({
 
       {/* Main Menu Grid */}
       <div className="home-menu">
-        {/* Online Room Creation */}
+        {/* Online Room Creation (Hero) */}
         <button
-          className="menu-btn primary"
+          className="menu-btn primary menu-btn-hero"
           onClick={() => {
             soundButton();
             onCreateOnlineRoom(playerName.trim() || 'Vos');
@@ -156,81 +158,80 @@ export default function HomeScreen({
           <span className="menu-arrow">➔</span>
         </button>
 
-        {/* Join Online Room */}
-        <button
-          className="menu-btn"
-          onClick={() => {
-            soundButton();
-            onOpenJoinModal();
-          }}
-        >
-          <div className="menu-icon">🔑</div>
-          <div className="menu-text">
-            <strong>Unirse a Sala Online</strong>
-            <span>Ingresá el código PIN que te pasó tu amigo</span>
-          </div>
-          <span className="menu-arrow">➔</span>
-        </button>
+        {/* 2x2 Grid for Game Modes */}
+        <div className="home-menu-grid-2col">
+          {/* Join Online Room */}
+          <button
+            className="menu-btn menu-btn-compact"
+            onClick={() => {
+              soundButton();
+              onOpenJoinModal();
+            }}
+          >
+            <div className="menu-icon">🔑</div>
+            <div className="menu-text">
+              <strong>Unirse a Sala</strong>
+              <span>Con PIN o código</span>
+            </div>
+          </button>
 
-        {/* Solo vs Bot */}
-        <button
-          className="menu-btn"
-          onClick={() => {
-            soundButton();
-            setSetupModal({
-              open: true,
-              mode: 'bot',
-              title: 'Jugar vs Bots (1v1, 2v2, 3v3)',
-            });
-          }}
-        >
-          <div className="menu-icon">🤠</div>
-          <div className="menu-text">
-            <strong>Partida vs Bots</strong>
-            <span>1v1 mano a mano, 2v2 en parejas o 3v3 sexteto</span>
-          </div>
-          <span className="menu-arrow">➔</span>
-        </button>
+          {/* Solo vs Bot */}
+          <button
+            className="menu-btn menu-btn-compact"
+            onClick={() => {
+              soundButton();
+              setSetupModal({
+                open: true,
+                mode: 'bot',
+                title: 'Jugar vs Bots (1v1, 2v2, 3v3)',
+              });
+            }}
+          >
+            <div className="menu-icon">🤠</div>
+            <div className="menu-text">
+              <strong>Partida vs Bots</strong>
+              <span>1v1, 2v2 o 3v3</span>
+            </div>
+          </button>
 
-        {/* Local Pass and Play */}
-        <button
-          className="menu-btn"
-          onClick={() => {
-            soundButton();
-            setSetupModal({
-              open: true,
-              mode: 'local',
-              title: 'Pasa y Juega en este Celular',
-            });
-          }}
-        >
-          <div className="menu-icon">📱</div>
-          <div className="menu-text">
-            <strong>Pasa y Juega (Local)</strong>
-            <span>Sin internet, pasando el celu entre amigos</span>
-          </div>
-          <span className="menu-arrow">➔</span>
-        </button>
+          {/* Local Pass and Play */}
+          <button
+            className="menu-btn menu-btn-compact"
+            onClick={() => {
+              soundButton();
+              setSetupModal({
+                open: true,
+                mode: 'local',
+                title: 'Pasa y Juega en este Celular',
+              });
+            }}
+          >
+            <div className="menu-icon">📱</div>
+            <div className="menu-text">
+              <strong>Pasa y Juega</strong>
+              <span>En este celu</span>
+            </div>
+          </button>
 
-        {/* Classic Matchstick Scorer */}
-        <button
-          className="menu-btn"
-          onClick={() => {
-            soundButton();
-            onOpenAnotador();
-          }}
-        >
-          <div className="menu-icon">📋</div>
-          <div className="menu-text">
-            <strong>Solo Anotador Gaucho</strong>
-            <span>Anotador con fósforos para cartas reales</span>
-          </div>
-          <span className="menu-arrow">➔</span>
-        </button>
+          {/* Classic Matchstick Scorer */}
+          <button
+            className="menu-btn menu-btn-compact"
+            onClick={() => {
+              soundButton();
+              onOpenAnotador();
+            }}
+          >
+            <div className="menu-icon">📋</div>
+            <div className="menu-text">
+              <strong>Solo Anotador</strong>
+              <span>Con fósforos</span>
+            </div>
+          </button>
+        </div>
 
         {/* PWA / Web App Install */}
         {!isStandalone && (
-          <button className="menu-btn pwa-install-btn" onClick={handleInstallClick}>
+          <button className="menu-btn pwa-install-btn menu-btn-compact-full" onClick={handleInstallClick}>
             <div className="menu-icon">📲</div>
             <div className="menu-text">
               <strong>Instalar como App en tu Celular</strong>
