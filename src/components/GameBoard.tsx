@@ -77,16 +77,16 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   const defaultMultiSeats = matchType === '2v2' ? [
     { seatIndex: 0, name: config.playerName || 'Vos', team: 0 as const, avatar: '🤠', isMe: true },
-    { seatIndex: 1, name: config.opponentName || 'Rival 1', team: 1 as const, avatar: '😎', isMe: false },
-    { seatIndex: 2, name: 'El Chaja (Compañero)', team: 0 as const, avatar: '🤠', isMe: false },
-    { seatIndex: 3, name: 'El Zorro (Rival 2)', team: 1 as const, avatar: '😼', isMe: false },
+    { seatIndex: 1, name: config.opponentName || 'Don Florencio', team: 1 as const, avatar: '😎', isMe: false },
+    { seatIndex: 2, name: 'El Chajá', team: 0 as const, avatar: '🤠', isMe: false },
+    { seatIndex: 3, name: 'El Zorro', team: 1 as const, avatar: '😼', isMe: false },
   ] : [
     { seatIndex: 0, name: config.playerName || 'Vos', team: 0 as const, avatar: '🤠', isMe: true },
-    { seatIndex: 1, name: config.opponentName || 'Rival 1', team: 1 as const, avatar: '😎', isMe: false },
-    { seatIndex: 2, name: 'El Chaja (Compañero 1)', team: 0 as const, avatar: '🤠', isMe: false },
-    { seatIndex: 3, name: 'El Zorro (Rival 2)', team: 1 as const, avatar: '😼', isMe: false },
-    { seatIndex: 4, name: 'Martín Fierro (Compañero 2)', team: 0 as const, avatar: '🧉', isMe: false },
-    { seatIndex: 5, name: 'Don Segundo (Rival 3)', team: 1 as const, avatar: '🐎', isMe: false },
+    { seatIndex: 1, name: config.opponentName || 'Don Florencio', team: 1 as const, avatar: '😎', isMe: false },
+    { seatIndex: 2, name: 'El Chajá', team: 0 as const, avatar: '🤠', isMe: false },
+    { seatIndex: 3, name: 'El Zorro', team: 1 as const, avatar: '😼', isMe: false },
+    { seatIndex: 4, name: 'Martín Fierro', team: 0 as const, avatar: '🧉', isMe: false },
+    { seatIndex: 5, name: 'Don Segundo', team: 1 as const, avatar: '🐎', isMe: false },
   ];
 
   // ─── Refs "vivos" ───────────────────────────────────────────────
@@ -1450,7 +1450,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     }
   };
 
-  const renderSeatChip = (seatIdx: number) => {
+  const renderSeatStation = (seatIdx: number, orientation: 'top' | 'left' | 'right' = 'top') => {
     const seat = defaultMultiSeats[seatIdx];
     if (!seat) return null;
     const isTurn = currentTurnSeat === seatIdx;
@@ -1461,7 +1461,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     return (
       <div
         key={seatIdx}
-        className={`seat-chip team-${seat.team} ${isTurn ? 'current-turn' : ''}`}
+        className={`seat-station seat-${orientation} team-${seat.team} ${isTurn ? 'current-turn' : ''}`}
         aria-label={`${seat.name} ${isTurn ? '(Turno actual)' : ''} ${isMano ? '(Mano)' : ''}`}
       >
         {multiSpeech[seatIdx] && (
@@ -1469,20 +1469,56 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             {multiSpeech[seatIdx].text}
           </div>
         )}
-        <span className="seat-avatar">{seat.avatar}</span>
-        <div className="seat-info-col">
-          <div className="seat-name-row">
-            <span className="seat-name">{seat.name}</span>
-            <span className={`seat-team-badge team-${seat.team}`} title={isTeammate ? 'Tu Compañero' : 'Equipo Rival'}>
-              {isTeammate ? '🤝' : '⚔️'}
-            </span>
+
+        {/* Profile Card / Badge */}
+        <div className="seat-badge-box">
+          <div className="seat-avatar-wrap">
+            <span className="seat-avatar">{seat.avatar}</span>
+            {isTurn && <span className="seat-turn-ring-glow" />}
+            {isMano && <span className="seat-mano-badge" title="Mano de la ronda">🖐️</span>}
           </div>
-          <div className="seat-badges-row">
-            <span className="seat-card-count">🃏 {cardsCount}</span>
-            {isMano && <span className="seat-role-pill mano" title="Mano de la ronda">🖐️ MANO</span>}
-            {isTurn && <span className="seat-turn-pill" title="Le toca tirar carta">🟢 TURNO</span>}
+
+          <div className="seat-info-col">
+            <div className="seat-name-row">
+              <span className="seat-name">{seat.name}</span>
+              <span className={`seat-count-tag team-${seat.team}`}>{cardsCount}</span>
+            </div>
+            <div className="seat-meta-row">
+              <span className={`seat-team-badge team-${seat.team}`}>
+                {isTeammate ? '🤝 Nosotros' : '⚔️ Ellos'}
+              </span>
+              {isTurn && <span className="seat-turn-pill">🟢 TURNO</span>}
+            </div>
           </div>
         </div>
+
+        {/* Fanned Cards held by this player (Naipes boca abajo en perspectiva) */}
+        {cardsCount > 0 && (
+          <div className={`seat-fanned-hand hand-dir-${orientation}`}>
+            {Array.from({ length: cardsCount }).map((_, cIdx) => {
+              let angle = 0;
+              let offset = 0;
+              if (cardsCount === 3) {
+                angle = cIdx === 0 ? -12 : cIdx === 1 ? 0 : 12;
+                offset = cIdx === 1 ? -4 : 0;
+              } else if (cardsCount === 2) {
+                angle = cIdx === 0 ? -8 : 8;
+              }
+              return (
+                <div
+                  key={cIdx}
+                  className="seat-mini-card-wrapper"
+                  style={{
+                    transform: `rotate(${angle}deg) translateY(${offset}px)`,
+                    zIndex: cIdx + 1,
+                  }}
+                >
+                  <CardBack small />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -1601,39 +1637,48 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             {/* Top Row: Partner (in 2v2) or Partners/Rivals (in 3v3) */}
             <div className="table-row-top">
               {matchType === '2v2' ? (
-                renderSeatChip(2)
+                renderSeatStation(2, 'top')
               ) : (
                 <>
-                  {renderSeatChip(2)}
-                  {renderSeatChip(3)}
-                  {renderSeatChip(4)}
+                  {renderSeatStation(2, 'top')}
+                  {renderSeatStation(3, 'top')}
+                  {renderSeatStation(4, 'top')}
                 </>
               )}
             </div>
 
             {/* Middle Row: Left Rival, Center Cards, Right Rival */}
             <div className="table-row-middle">
-              {renderSeatChip(1)}
+              {renderSeatStation(1, 'left')}
 
               {/* Cards played in this trick */}
               <div className="table-center-felt-cards">
+                <div className="turn-flow-ring" aria-hidden="true" />
+                <div className="multi-deck-pos">
+                  <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
+                </div>
+
                 {currentTrickPlays.length === 0 ? (
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
-                    Mesa {currentTrick + 1}ª Mano ({matchType})
-                  </span>
+                  <div className="table-empty-felt-placeholder">
+                    <span className="table-felt-emblem">🃏</span>
+                    <span className="table-felt-title">Mesa • {currentTrick + 1}ª Mano</span>
+                    <span className="table-felt-sub">Partida {matchType} a {config.goal} tantos</span>
+                  </div>
                 ) : (
-                  currentTrickPlays.map((p, idx) => (
-                    <div key={idx} className="multi-played-card">
-                      <span className={`card-owner-tag team-${p.team}`}>
-                        {p.playerName.split(' ')[0]}
-                      </span>
-                      <CardFace card={p.card} small disabled className="table-played-card" />
-                    </div>
-                  ))
+                  <div className="table-played-cards-cluster">
+                    {currentTrickPlays.map((p, idx) => (
+                      <div key={idx} className={`multi-played-card team-${p.team}`}>
+                        <span className={`card-owner-tag team-${p.team}`}>
+                          {p.playerName.split(' ')[0]}
+                        </span>
+                        <CardFace card={p.card} small disabled className="table-played-card" />
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {renderSeatChip(matchType === '2v2' ? 3 : 5)}
+              {renderSeatStation(matchType === '2v2' ? 3 : 5, 'right')}
             </div>
           </div>
         ) : (
@@ -1713,6 +1758,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             <div className={`player-badge ${(isMulti ? currentTurnSeat === 0 : turn === 'player') ? 'player-turn-active' : ''}`} aria-label={`Jugador: ${config.playerName}`}>
               <span className="player-avatar">🤠</span>
               <span className="player-name">{config.playerName || 'Vos'}</span>
+              {isMulti && <span className="seat-team-badge team-0">🤝 Nosotros</span>}
               {(isMulti ? currentTurnSeat === 0 : turn === 'player') && (
                 <span className="turn-indicator-pulse" title="Es tu turno"></span>
               )}
