@@ -184,6 +184,14 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const [firstCardPlayed, setFirstCardPlayedState] = useState(false);
   const setFirstCardPlayed = (v: boolean) => { firstCardPlayedRef.current = v; setFirstCardPlayedState(v); };
 
+  // En Truco Criollo: El Envido se puede cantar en la 1ª mano (currentTrick === 0)
+  // por cualquier jugador mientras tenga sus 3 cartas (antes de tirar su carta).
+  // Si la Mano no cantó Envido y tiró carta, el rival (pie) SÍ puede cantar Envido.
+  const canPlayerCallEnvido =
+    !envidoPlayed &&
+    currentTrick === 0 &&
+    (isMulti ? (multiHands[0]?.length ?? 3) === 3 : playerHand.length === 3);
+
   // Modal para mostrar la comparativa completa de Envido con ambos tantos
   const [envidoModal, setEnvidoModal] = useState<{
     pEnvido: number;
@@ -255,8 +263,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       } else if (key === '3' && playerHand.length >= 3 && isMyTurn && !pendingCall) {
         handlePlayCard(2);
       }
-      // [E] Envido
-      else if (key === 'e' && !envidoPlayed && !firstCardPlayed && currentTrick === 0 && !pendingCall) {
+      // [E] Envido (habilitado antes de tirar carta en 1ª mano, incluso si el rival ya jugó o cantó Truco)
+      else if (key === 'e' && canPlayerCallEnvido && (!pendingCall || (pendingCall.caller === 'opponent' && pendingCall.type === 'truco'))) {
         handlePlayerCall('envido');
       }
       // [T] Truco / Retruco / Vale 4
@@ -291,7 +299,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playerHand, turn, currentTurnSeat, isMulti, pendingCall, currentTrick, envidoPlayed, firstCardPlayed, trucoLevel, trucoCaller]);
+  }, [playerHand, multiHands, turn, currentTurnSeat, isMulti, pendingCall, currentTrick, envidoPlayed, canPlayerCallEnvido, trucoLevel, trucoCaller]);
 
   // Pass & Play curtain state (for local 2-player on same device)
   const isPassAndPlay = config.mode === 'local' && !isMulti;
@@ -960,7 +968,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     const { p: scoreP, o: scoreO } = scoreRef.current;
 
     // 1. Should bot call Envido?
-    if (!envidoPlayedRef.current && !firstCardPlayedRef.current && trickIdx === 0 &&
+    // En el Truco Argentino, si la Mano tiró carta sin cantar Envido, el rival (pie/bot) puede cantar Envido antes de tirar su carta
+    if (!envidoPlayedRef.current && trickIdx === 0 && botHand.length === 3 &&
         botShouldCallEnvido(botHand, roundView(), scoreO, scoreP)) {
       soundCall();
       setPendingCall({ type: 'envido', caller: 'opponent' });
@@ -1509,23 +1518,16 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             </div>
           )}
 
-          {/* Diálogo / Speech Bubble de turno (tanto para PC como para Celular) */}
-          {(isMulti ? currentTurnSeat === 0 : turn === 'player') && !matchWinner && !pendingCall && (
-            <div className="turn-dialog-bubble" role="status" aria-live="polite">
-              <span className="turn-live-dot" />
-              <span>🎯 ¡Es tu turno de tirar!</span>
-            </div>
-          )}
-
-          {/* Identificación del Jugador con su Nombre y Turno visible en la mesa */}
+          {/* Identificación del Jugador con su Nombre y Círculo Verde de Turno */}
           <div className="player-badge-container">
             <div className={`player-badge ${(isMulti ? currentTurnSeat === 0 : turn === 'player') ? 'player-turn-active' : ''}`} aria-label={`Jugador: ${config.playerName}`}>
               <span className="player-avatar">🤠</span>
               <span className="player-name">{config.playerName || 'Vos'}</span>
-              {(isMulti ? currentTurnSeat === 0 : turn === 'player') ? (
-                <span className="player-turn-tag">🎯 ¡TE TOCA TIRAR!</span>
-              ) : (
-                (isMulti ? manoSeat === 0 : mano === 'player') && <span className="seat-role-pill mano">🖐️ MANO</span>
+              {(isMulti ? currentTurnSeat === 0 : turn === 'player') && (
+                <span className="turn-indicator-pulse" title="Es tu turno"></span>
+              )}
+              {(isMulti ? manoSeat === 0 : mano === 'player') && (
+                <span className="seat-role-pill mano">MANO</span>
               )}
             </div>
           </div>
@@ -1556,6 +1558,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                     <span>¡Retruco!</span> {isDesktop && <kbd className="btn-kbd">T</kbd>}
                   </button>
                 )}
+                {pendingCall.type === 'truco' && canPlayerCallEnvido && (
+                  <button
+                    className="btn-callout envido-btn"
+                    onClick={() => handlePlayerCall('envido')}
+                    title="El Envido está primero"
+                  >
+                    <span>Envido ({myEnvidoPoints} pts)</span>
+                  </button>
+                )}
                 {pendingCall.type === 'retruco' && (
                   <button
                     className="btn-callout truco-action"
@@ -1567,7 +1578,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
               </>
             ) : (
               <>
-                {!envidoPlayed && !firstCardPlayed && currentTrick === 0 && (
+                {canPlayerCallEnvido && (
                   <>
                     <button className="btn-callout envido-btn" onClick={() => handlePlayerCall('envido')}>
                       <span>Envido ({myEnvidoPoints} pts)</span> {isDesktop && <kbd className="btn-kbd">E</kbd>}
@@ -1675,7 +1686,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                     <span className="throw-chip-num">{c.num}</span>
                   </button>
                 ))}
-                {!envidoPlayed && !firstCardPlayed && currentTrick === 0 && (
+                {!envidoPlayed && currentTrick === 0 && oppCardsCount === 3 && (
                   <button className="btn-callout envido-btn" onClick={() => handlePlayerCall('envido', 'opponent')}>
                     <span>Envido</span>
                   </button>

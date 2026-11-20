@@ -183,9 +183,25 @@ export function faltaEnvidoPoints(
   return goal - loserScore;
 }
 
-/** Can envido still be called in this round? */
-export function canCallEnvido(round: RoundState): boolean {
-  return !round.envidoPlayed && !round.firstCardPlayed && round.currentTrick === 0;
+/** Can envido still be called in this round?
+ * En el Truco Argentino, el Envido se puede cantar en la primera mano (baza 0)
+ * por cualquier jugador que todavía no haya tirado su carta de esa baza.
+ * Si la Mano tiró carta sin cantar Envido, el rival (pie) aún puede cantar Envido
+ * antes de tirar su carta.
+ */
+export function canCallEnvido(round: RoundState, callerHand?: Card[]): boolean {
+  if (round.envidoPlayed || round.currentTrick !== 0) return false;
+  if (callerHand) {
+    return callerHand.length === 3;
+  }
+  if (round.playerHand && round.opponentHand) {
+    return round.playerHand.length === 3 || round.opponentHand.length === 3;
+  }
+  const trick0 = round.tricks && round.tricks[0];
+  if (trick0 && trick0.cards && trick0.cards.length >= 2) {
+    return false;
+  }
+  return true;
 }
 
 /** Can truco be called / escalated? */

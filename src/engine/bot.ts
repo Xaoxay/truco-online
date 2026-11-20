@@ -144,7 +144,7 @@ export function botShouldCallEnvido(
   myScore: number,
   oppScore: number,
 ): boolean {
-  if (!canCallEnvido(round)) return false;
+  if (!canCallEnvido(round, hand)) return false;
   const envido = calculateEnvido(hand);
   // Call envido if we have decent points (27+)
   // Lower threshold when behind in score

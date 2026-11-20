@@ -97,9 +97,9 @@ test("limita el archivo a las últimas 100 partidas", () => {
   assert.equal(s.finished.length, 100);
 });
 
-import { calculateEnvido, evaluateTeamTrick, checkTeamRoundWinner } from "../src/engine/rules.ts";
+import { calculateEnvido, evaluateTeamTrick, checkTeamRoundWinner, canCallEnvido } from "../src/engine/rules.ts";
 import { chooseMultiBotCard } from "../src/engine/bot.ts";
-import type { Card } from "../src/engine/types.ts";
+import type { Card, RoundState } from "../src/engine/types.ts";
 
 test("calcula el Envido correctamente en todos los casos criollos", () => {
   // Caso 1: 33 de espada (7 + 6 de espada)
@@ -235,4 +235,40 @@ test("resolución de Envido: el mayor puntaje gana siempre; a empate gana la Man
   // 2. Empate: gana estrictamente la Mano
   assert.equal(compareEnvido(27, 27, true), true);   // Jugador es mano: gana el jugador
   assert.equal(compareEnvido(27, 27, false), false);  // Rival es mano: gana el rival
+});
+
+test("regla criolla de Envido: el rival (pie) puede cantar Envido en 1ª baza si la Mano tiró carta sin cantarlo", () => {
+  const cardEspada7: Card = { id: 'espada-7', num: 7, suit: 'espada', power: 12, envidoVal: 7, label: '7 Espada' };
+  const cardEspada6: Card = { id: 'espada-6', num: 6, suit: 'espada', power: 3, envidoVal: 6, label: '6 Espada' };
+  const cardBasto1: Card = { id: 'basto-1', num: 1, suit: 'basto', power: 13, envidoVal: 1, label: '1 Basto' };
+  const pieHand: Card[] = [cardEspada7, cardEspada6, cardBasto1]; // 33 de envido
+  const manoHandAfterPlay: Card[] = [cardEspada6, cardBasto1]; // Mano ya tiró 1 carta, le quedan 2
+
+  const round: RoundState = {
+    playerHand: manoHandAfterPlay,
+    opponentHand: pieHand,
+    tricks: [{ cards: [{ player: 'player', card: cardEspada7 }], winner: null }],
+    currentTrick: 0,
+    mano: 'player',
+    trucoLevel: 'none',
+    trucoCaller: null,
+    envidoPlayed: false,
+    firstCardPlayed: true,
+  };
+
+  // 1. El rival (pie) tiene sus 3 cartas y es la 1ª baza: SÍ puede cantar Envido
+  assert.equal(canCallEnvido(round, pieHand), true);
+
+  // 2. La mano ya tiró su carta (le quedan 2 cartas): NO puede iniciar Envido
+  assert.equal(canCallEnvido(round, manoHandAfterPlay), false);
+
+  // 3. Si el rival también tira su carta (ambos jugaron en baza 0): ya NO se puede cantar Envido
+  const pieHandAfterPlay = [cardEspada6, cardBasto1];
+  assert.equal(canCallEnvido(round, pieHandAfterPlay), false);
+
+  // 4. Si el Envido ya fue jugado en esta ronda: NO se puede volver a cantar
+  assert.equal(canCallEnvido({ ...round, envidoPlayed: true }, pieHand), false);
+
+  // 5. En 2ª mano (currentTrick === 1): NO se puede cantar Envido
+  assert.equal(canCallEnvido({ ...round, currentTrick: 1 }, pieHand), false);
 });
