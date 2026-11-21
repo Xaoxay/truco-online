@@ -271,4 +271,33 @@ test("regla criolla de Envido: el rival (pie) puede cantar Envido en 1ª baza si
 
   // 5. En 2ª mano (currentTrick === 1): NO se puede cantar Envido
   assert.equal(canCallEnvido({ ...round, currentTrick: 1 }, pieHand), false);
+
+  // 6. PRIORIDAD DE LA MANO:
+  // Al inicio de la ronda (antes de tirar ninguna carta), la Mano tiene prioridad exclusiva
+  const freshRound: RoundState = {
+    playerHand: pieHand,
+    opponentHand: pieHand,
+    tricks: [],
+    currentTrick: 0,
+    mano: 'player', // Jugador es Mano
+    trucoLevel: 'none',
+    trucoCaller: null,
+    envidoPlayed: false,
+    firstCardPlayed: false,
+  };
+  // La Mano (player) puede cantar al inicio:
+  assert.equal(canCallEnvido(freshRound, pieHand, 'player'), true);
+  // El Pie (opponent) NO puede cantar antes de que la Mano actúe:
+  assert.equal(canCallEnvido(freshRound, pieHand, 'opponent'), false);
+
+  // 7. Si la Mano tira carta a la mesa sin cantar envido, el Pie recién ahí adquiere el derecho:
+  const roundManoPlayed: RoundState = {
+    ...freshRound,
+    firstCardPlayed: true,
+    tricks: [{ cards: [{ player: 'player', card: cardEspada7 }], winner: null }],
+  };
+  assert.equal(canCallEnvido(roundManoPlayed, pieHand, 'opponent'), true);
+
+  // 8. Si la Mano canta Truco en 1ª mano, el Pie puede responder con Envido ("El envido está primero"):
+  assert.equal(canCallEnvido(freshRound, pieHand, 'opponent', true), true);
 });

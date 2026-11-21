@@ -184,13 +184,38 @@ export function faltaEnvidoPoints(
 }
 
 /** Can envido still be called in this round?
- * En el Truco Argentino, el Envido se puede cantar en la primera mano (baza 0)
- * por cualquier jugador que todavía no haya tirado su carta de esa baza.
- * Si la Mano tiró carta sin cantar Envido, el rival (pie) aún puede cantar Envido
- * antes de tirar su carta.
+ * En el Truco Argentino:
+ * - El Envido se canta en la primera mano (baza 0), con 3 cartas en mano, y si no se cantó antes.
+ * - La Mano (el que empieza) siempre tiene prioridad para hablar o cantar primero.
+ * - Si la Mano juega carta sin cantar envido, el rival (pie) SÍ puede cantar Envido antes de tirar su carta.
+ * - Si el rival canta Truco en primera mano, rige "El envido está primero".
  */
-export function canCallEnvido(round: RoundState, callerHand?: Card[]): boolean {
+export function canCallEnvido(
+  round: RoundState,
+  callerHand?: Card[],
+  caller?: PlayerId,
+  isRespondingToTruco: boolean = false
+): boolean {
   if (round.envidoPlayed || round.currentTrick !== 0) return false;
+  if (callerHand && callerHand.length !== 3) return false;
+
+  // Si se responde a un Truco ("El envido está primero")
+  if (isRespondingToTruco) return true;
+
+  // Si se especifica el jugador que canta:
+  if (caller) {
+    const isMano = caller === round.mano;
+    if (isMano) {
+      // La mano tiene prioridad de cantar al abrir la 1ª mano
+      return true;
+    } else {
+      // El que no es mano (pie) SOLO puede cantar si la Mano ya jugó carta a la mesa
+      const manoPlayedCard = round.tricks && round.tricks[0] && round.tricks[0].cards &&
+        round.tricks[0].cards.some(c => c.player === round.mano);
+      return Boolean(manoPlayedCard || round.firstCardPlayed);
+    }
+  }
+
   if (callerHand) {
     return callerHand.length === 3;
   }
