@@ -174,6 +174,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   // Dealing animation state ('idle' | 'shuffling' | 'dealing')
   const [dealPhase, setDealPhase] = useState<'idle' | 'shuffling' | 'dealing'>('idle');
+  const [flyingCards, setFlyingCards] = useState<{ id: number; targetSeat: number }[]>([]);
 
   // Turn & phase
   const [mano, setManoState] = useState<PlayerId>('player');
@@ -240,7 +241,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const myEnvidoPoints = calculateEnvido(initialPlayerHand.length === 3 ? initialPlayerHand : playerHand);
 
   const handleShuffleAndCut = () => {
-    soundButton();
+    soundShuffle();
     setIsShufflingDeck(true);
     setTimeout(() => {
       setIsShufflingDeck(false);
@@ -255,7 +256,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         starterName: starter,
       });
       // Solo informativo: NO toca el turno (antes podía dejar la mano trabada).
-    }, 700);
+    }, 2200);
   };
 
   // Keyboard Shortcuts for PC Desktop Play
@@ -467,24 +468,58 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     setOppHandCards([]);
     setOppCardsCount(0);
     setMultiHands(Array.from({ length: seatCount }, () => []));
+    setFlyingCards([]);
     setCurrentTrickPlays([]);
     setMultiTrickWinners([]);
     setManoSeat(nextManoSeat);
     setCurrentTurnSeat(-1); // Nadie juega mientras se reparte
 
-    // Fase 1: El mazo se traslada al centro de la mesa y baraja
+    // Fase 1: El mazo se traslada al centro de la mesa y baraja durante 2.2s
     setDealPhase('shuffling');
     soundShuffle();
 
-    // Fase 2: Tras mezclar (850ms), vuelan las cartas hacia los jugadores
+    // Fase 2: Reparto secuencial carta por carta a cada jugador según el orden de mano
     later(() => {
       if (matchOverRef.current) return;
       setDealPhase('dealing');
-      soundCardDeal();
-      later(() => soundCardDeal(), 180);
-      later(() => soundCardDeal(), 360);
+      const stepInterval = seatCount === 6 ? 75 : 95;
+      const totalDeals = seatCount * 3;
 
-      // Fase 3: Tras repartir (650ms), el mazo se acomoda en su lugar tradicional
+      for (let step = 0; step < totalDeals; step++) {
+        const cardRound = Math.floor(step / seatCount);
+        const seatOffset = step % seatCount;
+        const targetSeat = (nextManoSeat + seatOffset) % seatCount;
+        const cardToDeal = hands[targetSeat]?.[cardRound];
+        const stepDelay = step * stepInterval;
+
+        later(() => {
+          if (matchOverRef.current) return;
+          const flightId = Date.now() + Math.random();
+          setFlyingCards(prev => [...prev, { id: flightId, targetSeat }]);
+          soundCardDeal();
+
+          later(() => {
+            if (matchOverRef.current) return;
+            setFlyingCards(prev => prev.filter(fc => fc.id !== flightId));
+            if (cardToDeal) {
+              const currentMulti = multiHandsRef.current.map(h => [...h]);
+              if (currentMulti[targetSeat] && currentMulti[targetSeat].length <= cardRound) {
+                currentMulti[targetSeat].push(cardToDeal);
+                setMultiHands(currentMulti);
+              }
+              if (targetSeat === 0) {
+                const currentP = [...playerHandRef.current];
+                if (currentP.length <= cardRound && hands[0]?.[cardRound]) {
+                  currentP.push(hands[0][cardRound]);
+                  setPlayerHand(currentP);
+                }
+              }
+            }
+          }, 260);
+        }, stepDelay);
+      }
+
+      // Fase 3: Tras finalizar el reparto secuencial, el mazo se acomoda en su lugar tradicional
       // (a la derecha del que mezcló / a la izquierda del que empieza) y arranca la mano
       later(() => {
         if (matchOverRef.current) return;
@@ -492,6 +527,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         setOppHandCards(hands[1] ? [...hands[1]] : []);
         setOppCardsCount(3);
         setMultiHands(hands);
+        setFlyingCards([]);
         setDealPhase('idle');
         setCurrentTurnSeat(nextManoSeat);
 
@@ -502,8 +538,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         if (nextManoSeat !== 0) {
           later(() => runMultiBotTurn(nextManoSeat, hands, 0, []), 900);
         }
-      }, 650);
-    }, 850);
+      }, totalDeals * stepInterval + 340);
+    }, 2200);
   };
 
   const runMultiBotTurn = (
@@ -649,6 +685,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     setPlayerHand([]);
     setOppHandCards([]);
     setOppCardsCount(0);
+    setFlyingCards([]);
     setTurn('none' as any);
 
     if (config.mode === 'online' && network && network.isHost) {
@@ -663,20 +700,52 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       });
     }
 
+    // Fase 1: Barajado de 2.2s en el centro
     setDealPhase('shuffling');
     soundShuffle();
 
+    // Fase 2: Reparto secuencial carta por carta alternado entre Mano y Pie
     later(() => {
       if (matchOverRef.current) return;
       setDealPhase('dealing');
-      soundCardDeal();
-      later(() => soundCardDeal(), 200);
+      const stepInterval = 130;
+      const totalDeals = 6;
 
+      for (let step = 0; step < totalDeals; step++) {
+        const isPlayerTurn = nextMano === 'player' ? step % 2 === 0 : step % 2 === 1;
+        const targetSeat = isPlayerTurn ? 0 : 1;
+        const cardRound = Math.floor(step / 2);
+        const stepDelay = step * stepInterval;
+
+        later(() => {
+          if (matchOverRef.current) return;
+          const flightId = Date.now() + Math.random();
+          setFlyingCards(prev => [...prev, { id: flightId, targetSeat }]);
+          soundCardDeal();
+
+          later(() => {
+            if (matchOverRef.current) return;
+            setFlyingCards(prev => prev.filter(fc => fc.id !== flightId));
+            if (targetSeat === 0) {
+              const currentP = [...playerHandRef.current];
+              if (currentP.length <= cardRound && pHand[cardRound]) {
+                currentP.push(pHand[cardRound]);
+                setPlayerHand(currentP);
+              }
+            } else {
+              setOppCardsCount(prev => prev + 1);
+            }
+          }, 250);
+        }, stepDelay);
+      }
+
+      // Fase 3: Tras finalizar el reparto, acomodar el mazo y habilitar la mano
       later(() => {
         if (matchOverRef.current) return;
         setPlayerHand(pHand);
         setOppHandCards(oHand);
         setOppCardsCount(3);
+        setFlyingCards([]);
         setDealPhase('idle');
         setTurn(nextMano);
 
@@ -692,8 +761,8 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         if (config.mode === 'bot' && nextMano === 'opponent') {
           later(() => runBotTurn(), 900);
         }
-      }, 550);
-    }, 850);
+      }, totalDeals * stepInterval + 340);
+    }, 2200);
   };
 
   /** Invitado: aplica una mano repartida por el anfitrión. */
@@ -1737,16 +1806,14 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             {/* Animación de Naipes Volando desde el centro hacia cada jugador */}
             {dealPhase === 'dealing' && (
               <div className="dealing-flying-cards-overlay" aria-hidden="true">
-                <div className="flying-card fly-to-top"><CardBack small /></div>
-                <div className="flying-card fly-to-left"><CardBack small /></div>
-                <div className="flying-card fly-to-right"><CardBack small /></div>
-                <div className="flying-card fly-to-bottom"><CardBack small /></div>
-                {matchType === '3v3' && (
-                  <>
-                    <div className="flying-card fly-to-top-left"><CardBack small /></div>
-                    <div className="flying-card fly-to-top-right"><CardBack small /></div>
-                  </>
-                )}
+                {flyingCards.map(fc => (
+                  <div
+                    key={fc.id}
+                    className={`flying-deal-card deal-to-seat-${fc.targetSeat} match-${matchType}`}
+                  >
+                    <CardBack small />
+                  </div>
+                ))}
               </div>
             )}
 
@@ -1860,8 +1927,14 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
               {dealPhase === 'dealing' && (
                 <div className="dealing-flying-cards-overlay" aria-hidden="true">
-                  <div className="flying-card fly-to-top"><CardBack small /></div>
-                  <div className="flying-card fly-to-bottom"><CardBack small /></div>
+                  {flyingCards.map(fc => (
+                    <div
+                      key={fc.id}
+                      className={`flying-deal-card deal-to-1v1-${fc.targetSeat === 0 ? 'player' : 'opp'}`}
+                    >
+                      <CardBack small />
+                    </div>
+                  ))}
                 </div>
               )}
 

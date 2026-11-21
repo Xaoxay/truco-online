@@ -1332,30 +1332,159 @@ body {
   border: 0.8px solid #fef3c7;
 }
 
-/* Animación de mezcla (Shuffling) */
-.table-side-deck.is-shuffling .deck-layer-3 {
-  animation: deckShuffleLeft 0.35s infinite alternate ease-in-out;
-}
-.table-side-deck.is-shuffling .deck-layer-2 {
-  animation: deckShuffleRight 0.35s 0.1s infinite alternate ease-in-out;
-}
-.table-side-deck.is-shuffling .deck-top-card {
-  animation: deckShuffleUp 0.35s 0.05s infinite alternate ease-in-out;
+/* Animación de mezcla (Shuffling) y Barajado Profesional 3D */
+.table-side-deck.pro-shuffle-active {
+  box-shadow: 0 0 26px rgba(245, 158, 11, 0.65), 0 10px 32px rgba(0, 0, 0, 0.75);
+  animation: deckPulseGlow 2.2s ease-in-out infinite;
 }
 
-@keyframes deckShuffleLeft {
-  0% { transform: translate(-3px, 3px) rotate(-3deg); }
-  100% { transform: translate(-22px, -6px) rotate(-14deg); }
+@keyframes deckPulseGlow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.3)); }
+  45% { transform: scale(1.08); filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.75)); }
+  85% { transform: scale(1.02); filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.5)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.3)); }
 }
 
-@keyframes deckShuffleRight {
-  0% { transform: translate(2px, 2px) rotate(2deg); }
-  100% { transform: translate(22px, -4px) rotate(14deg); }
+.pro-shuffle-rig {
+  position: relative;
+  width: 52px;
+  height: 76px;
+  perspective: 600px;
 }
 
-@keyframes deckShuffleUp {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-12px) scale(1.05); }
+/* Pilas divididas izquierda y derecha */
+.shuffle-pile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 52px;
+  height: 76px;
+  transform-origin: center bottom;
+}
+
+.shuffle-pile.pile-left {
+  animation: shufflePileLeft 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.shuffle-pile.pile-right {
+  animation: shufflePileRight 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.shuffle-pile .pile-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
+}
+.shuffle-pile .pile-card.p1 { transform: translate(-2px, -2px); }
+.shuffle-pile .pile-card.p2 { transform: translate(2px, 2px); }
+.shuffle-pile .pile-card.p3 { transform: translate(0, 0); }
+
+@keyframes shufflePileLeft {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  18% { transform: translate(-42px, -6px) rotate(-18deg); }
+  38% { transform: translate(-28px, 2px) rotate(-8deg); }
+  58% { transform: translate(-14px, -8px) rotate(-4deg); }
+  78% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes shufflePileRight {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  18% { transform: translate(42px, -6px) rotate(18deg); }
+  38% { transform: translate(28px, 2px) rotate(8deg); }
+  58% { transform: translate(14px, -8px) rotate(4deg); }
+  78% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+/* Cascada entrelazada central (Riffle) */
+.shuffle-riffle-cascade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 52px;
+  height: 76px;
+  pointer-events: none;
+}
+
+.shuffle-riffle-cascade .cascade-leaf {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+.shuffle-riffle-cascade .cascade-leaf.leaf-1 {
+  animation: riffleLeaf1 2.2s ease-in-out infinite;
+}
+.shuffle-riffle-cascade .cascade-leaf.leaf-2 {
+  animation: riffleLeaf2 2.2s ease-in-out infinite;
+}
+.shuffle-riffle-cascade .cascade-leaf.leaf-3 {
+  animation: riffleLeaf3 2.2s ease-in-out infinite;
+}
+.shuffle-riffle-cascade .cascade-leaf.leaf-4 {
+  animation: riffleLeaf4 2.2s ease-in-out infinite;
+}
+
+@keyframes riffleLeaf1 {
+  0%, 15% { opacity: 0; transform: translate(-32px, -8px) rotate(-16deg) scale(0.95); }
+  26% { opacity: 1; transform: translate(-14px, -2px) rotate(-6deg); }
+  46% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  75%, 100% { opacity: 0; transform: translate(0, 0); }
+}
+
+@keyframes riffleLeaf2 {
+  0%, 20% { opacity: 0; transform: translate(32px, -8px) rotate(16deg) scale(0.95); }
+  32% { opacity: 1; transform: translate(14px, -1px) rotate(6deg); }
+  50% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  75%, 100% { opacity: 0; transform: translate(0, 0); }
+}
+
+@keyframes riffleLeaf3 {
+  0%, 28% { opacity: 0; transform: translate(-26px, -4px) rotate(-10deg) scale(0.95); }
+  40% { opacity: 1; transform: translate(-6px, 1px) rotate(-3deg); }
+  58% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  75%, 100% { opacity: 0; transform: translate(0, 0); }
+}
+
+@keyframes riffleLeaf4 {
+  0%, 35% { opacity: 0; transform: translate(26px, -4px) rotate(10deg) scale(0.95); }
+  46% { opacity: 1; transform: translate(6px, 1px) rotate(2deg); }
+  64% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  75%, 100% { opacity: 0; transform: translate(0, 0); }
+}
+
+/* Corte tradicional del mazo */
+.shuffle-cut-block {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.75);
+  animation: deckCutSnap 2.2s ease-in-out infinite;
+}
+
+@keyframes deckCutSnap {
+  0%, 72% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(32px, -16px) rotate(10deg);
+  }
+  86% {
+    transform: translate(36px, 8px) rotate(4deg);
+  }
+  94% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 /* ========================================================
@@ -3510,69 +3639,142 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   width: 0;
   height: 0;
   pointer-events: none;
-  z-index: 65;
+  z-index: 75;
 }
 
-.flying-card {
+.flying-deal-card {
   position: absolute;
   top: 0;
   left: 0;
   margin-top: -24px;
   margin-left: -16px;
-  width: 32px;
-  height: 48px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+  width: 34px;
+  height: 50px;
   border-radius: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85), 0 0 12px rgba(245, 158, 11, 0.45);
   overflow: hidden;
+  will-change: transform, opacity;
 }
 
-.flying-card.fly-to-top {
-  animation: flyToTop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* Naipes volando en 1v1 */
+.flying-deal-card.deal-to-1v1-player {
+  animation: dealFly1v1Player 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
 }
-.flying-card.fly-to-bottom {
-  animation: flyToBottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.flying-card.fly-to-left {
-  animation: flyToLeft 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.flying-card.fly-to-right {
-  animation: flyToRight 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.flying-card.fly-to-top-left {
-  animation: flyToTopLeft 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.flying-card.fly-to-top-right {
-  animation: flyToTopRight 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.flying-deal-card.deal-to-1v1-opp {
+  animation: dealFly1v1Opp 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
 }
 
-@keyframes flyToTop {
+@keyframes dealFly1v1Player {
   0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
-  100% { transform: translate(0, -170px) scale(0.65) rotate(-10deg); opacity: 0; }
+  100% { transform: translate(0, 200px) scale(1.1) rotate(6deg); opacity: 0.1; }
 }
 
-@keyframes flyToBottom {
+@keyframes dealFly1v1Opp {
   0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
-  100% { transform: translate(0, 190px) scale(1.05) rotate(6deg); opacity: 0; }
+  100% { transform: translate(0, -180px) scale(0.68) rotate(-8deg); opacity: 0.1; }
 }
 
-@keyframes flyToLeft {
+/* Naipes volando en Multi (2v2 y 3v3) */
+/* Asiento 0: Vos (abajo) */
+.flying-deal-card.deal-to-seat-0 {
+  animation: dealFlySeat0 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+@keyframes dealFlySeat0 {
   0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
-  100% { transform: translate(-220px, 0) scale(0.7) rotate(-22deg); opacity: 0; }
+  100% { transform: translate(0, 210px) scale(1.1) rotate(5deg); opacity: 0.1; }
 }
 
-@keyframes flyToRight {
+/* Asiento 1: Rival 1 (izquierda) */
+.flying-deal-card.deal-to-seat-1 {
+  animation: dealFlySeat1 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+@keyframes dealFlySeat1 {
   0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
-  100% { transform: translate(220px, 0) scale(0.7) rotate(22deg); opacity: 0; }
+  100% { transform: translate(-230px, 0px) scale(0.7) rotate(-22deg); opacity: 0.1; }
 }
 
-@keyframes flyToTopLeft {
-  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
-  100% { transform: translate(-140px, -150px) scale(0.65) rotate(-14deg); opacity: 0; }
+/* Asiento 2:
+   En 2v2: Arriba al centro
+   En 3v3: Arriba a la izquierda
+*/
+.flying-deal-card.match-2v2.deal-to-seat-2 {
+  animation: dealFlySeatTopCenter 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+.flying-deal-card.match-3v3.deal-to-seat-2 {
+  animation: dealFlySeatTopLeft 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
 }
 
-@keyframes flyToTopRight {
+@keyframes dealFlySeatTopLeft {
   0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
-  100% { transform: translate(140px, -150px) scale(0.65) rotate(14deg); opacity: 0; }
+  100% { transform: translate(-170px, -170px) scale(0.65) rotate(-14deg); opacity: 0.1; }
+}
+@keyframes dealFlySeatTopCenter {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(0, -180px) scale(0.65) rotate(0deg); opacity: 0.1; }
+}
+
+/* Asiento 3:
+   En 2v2: Derecha medio
+   En 3v3: Arriba al centro
+*/
+.flying-deal-card.match-2v2.deal-to-seat-3 {
+  animation: dealFlySeatRight 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+.flying-deal-card.match-3v3.deal-to-seat-3 {
+  animation: dealFlySeatTopCenter 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+/* Asiento 4 (solo 3v3): Arriba a la derecha */
+.flying-deal-card.deal-to-seat-4 {
+  animation: dealFlySeatTopRight 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+@keyframes dealFlySeatTopRight {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(170px, -170px) scale(0.65) rotate(14deg); opacity: 0.1; }
+}
+
+/* Asiento 5 (solo 3v3): Derecha medio */
+.flying-deal-card.deal-to-seat-5 {
+  animation: dealFlySeatRight 0.28s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+@keyframes dealFlySeatRight {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(230px, 0px) scale(0.7) rotate(22deg); opacity: 0.1; }
+}
+
+@media (max-width: 767px) {
+  @keyframes dealFly1v1Player {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(0, 150px) scale(1) rotate(6deg); opacity: 0.1; }
+  }
+  @keyframes dealFly1v1Opp {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(0, -135px) scale(0.65) rotate(-8deg); opacity: 0.1; }
+  }
+  @keyframes dealFlySeat0 {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(0, 150px) scale(1) rotate(5deg); opacity: 0.1; }
+  }
+  @keyframes dealFlySeat1 {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-140px, 0px) scale(0.68) rotate(-18deg); opacity: 0.1; }
+  }
+  @keyframes dealFlySeatTopLeft {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-105px, -125px) scale(0.6) rotate(-12deg); opacity: 0.1; }
+  }
+  @keyframes dealFlySeatTopCenter {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(0, -130px) scale(0.6) rotate(0deg); opacity: 0.1; }
+  }
+  @keyframes dealFlySeatTopRight {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(105px, -125px) scale(0.6) rotate(12deg); opacity: 0.1; }
+  }
+  @keyframes dealFlySeatRight {
+    0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+    100% { transform: translate(140px, 0px) scale(0.68) rotate(18deg); opacity: 0.1; }
+  }
 }
 
 /* ========================================================

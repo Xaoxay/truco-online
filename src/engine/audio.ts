@@ -41,10 +41,28 @@ export function soundCardDeal() {
 }
 
 export function soundShuffle() {
-  const freqs = [220, 260, 240, 280, 250, 310, 270, 330];
+  // Fase 1: Entrelazado rápido de cartas (riffle) durante 1.4s
+  const freqs = [
+    220, 280, 240, 310, 260, 330, 250, 300,
+    230, 290, 270, 320, 240, 310, 280, 340,
+    260, 320, 290, 350, 270, 330, 280, 340
+  ];
   freqs.forEach((freq, idx) => {
-    setTimeout(() => tone(freq, 'triangle', 0.04, 0.1), idx * 65);
+    setTimeout(() => tone(freq, 'triangle', 0.035, 0.08), idx * 55);
   });
+
+  // Fase 2: Puente y arqueo de naipes (bridge arch) a los 1.5s
+  setTimeout(() => {
+    tone(380, 'sine', 0.08, 0.12);
+    setTimeout(() => tone(460, 'triangle', 0.09, 0.14), 90);
+    setTimeout(() => tone(520, 'triangle', 0.11, 0.16), 180);
+  }, 1450);
+
+  // Fase 3: Corte y cierre del mazo (cut & snap) a los 1.9s y 2.1s
+  setTimeout(() => {
+    tone(190, 'triangle', 0.08, 0.12);
+    setTimeout(() => tone(230, 'triangle', 0.1, 0.15), 170);
+  }, 1900);
 }
 
 export function soundCall() {
