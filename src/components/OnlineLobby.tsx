@@ -1,8 +1,8 @@
-// ─── Online Room Host / Guest Lobby ──────────────────────────────
+// ─── Online Room Host / Guest Lobby with Real Multi-Player Seats ──────────────────
 import React, { useState } from 'react';
 import { soundButton } from '../engine/audio';
 import type { NetworkStatus } from '../engine/network';
-import type { MatchType } from '../engine/types';
+import type { MatchType, RoomSeat } from '../engine/types';
 
 interface OnlineLobbyProps {
   roomCode: string;
@@ -15,12 +15,17 @@ interface OnlineLobbyProps {
   goal: 15 | 30;
   withFlor: boolean;
   matchType?: MatchType;
+  seats?: RoomSeat[];
+  myPeerId?: string;
   onSetGoal: (g: 15 | 30) => void;
   onSetFlor: (f: boolean) => void;
   onSetMatchType?: (m: MatchType) => void;
-  onStartMatch: () => void;
+  onChangeSeat?: (targetSeatIndex: number) => void;
+  onStartMatch: (fillWithBots?: boolean) => void;
   onCancel: () => void;
 }
+
+const DEFAULT_AVATARS = ['🤠', '😎', '🧉', '😼', '🐎', '🎭'];
 
 export default function OnlineLobby({
   roomCode,
@@ -33,9 +38,12 @@ export default function OnlineLobby({
   goal,
   withFlor,
   matchType = '1v1',
+  seats,
+  myPeerId,
   onSetGoal,
   onSetFlor,
   onSetMatchType,
+  onChangeSeat,
   onStartMatch,
   onCancel,
 }: OnlineLobbyProps) {
@@ -56,7 +64,6 @@ export default function OnlineLobby({
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      // Fallback
       prompt('Copia este enlace para enviarlo a tus amigos:', shareUrl);
     }
   };
@@ -70,174 +77,84 @@ export default function OnlineLobby({
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
-  const playerCount = matchType === '1v1' ? 2 : matchType === '2v2' ? 4 : 6;
+  const totalSeats = matchType === '1v1' ? 2 : matchType === '2v2' ? 4 : 6;
 
-  // Render slots for the chosen format
-  const renderSlots = () => {
-    const isPeerConnected = Boolean(peerName);
-    const oppDisplayName = isPeerConnected ? peerName : isHost ? (fillBots ? 'Don Florencio (Bot)' : 'Esperando a tu amigo...') : 'Conectando con el anfitrión...';
+  // Build the live seat list
+  const currentSeats: RoomSeat[] = Array.from({ length: totalSeats }, (_, i) => {
+    const existing = seats?.find(s => s.seatIndex === i);
+    if (existing) return existing;
+    return {
+      seatIndex: i,
+      peerId: i === 0 && isHost ? (myPeerId || 'host') : '',
+      name: i === 0 && isHost ? playerName : '',
+      team: (i % 2 === 0 ? 0 : 1) as 0 | 1,
+      avatar: DEFAULT_AVATARS[i] || '🤠',
+      isHost: i === 0 && isHost,
+      isConnected: i === 0 && isHost,
+    };
+  });
 
-    if (matchType === '1v1') {
-      return (
-        <div className="lobby-slots">
-          <div className="slot-player">
-            <div className="slot-left">
-              <div className="slot-avatar">🤠</div>
-              <div>
-                <div className="slot-name">{playerName} {isHost ? '(Anfitrión)' : '(Vos)'}</div>
-                <div className="slot-tag">Mano • Nosotros</div>
-              </div>
-            </div>
-            <div className="slot-status ready">Conectado</div>
-          </div>
+  const connectedCount = currentSeats.filter(s => Boolean(s.peerId && s.isConnected !== false)).length;
+  const isFull = connectedCount >= totalSeats;
 
-          <div className="slot-player">
-            <div className="slot-left">
-              <div className="slot-avatar" style={{ borderColor: isPeerConnected ? 'var(--gold)' : '#555' }}>
-                {isPeerConnected ? '😎' : isHost && fillBots ? '🤖' : '⏳'}
-              </div>
-              <div>
-                <div className="slot-name">
-                  {oppDisplayName}
-                </div>
-                <div className="slot-tag" style={{ color: isPeerConnected ? 'var(--gold-light)' : '#888' }}>
-                  {isPeerConnected ? 'Listo para jugar' : isHost && fillBots ? 'Bot de Reemplazo' : 'Pie • Ellos'}
-                </div>
-              </div>
-            </div>
-            <div className={`slot-status ${isPeerConnected ? 'ready' : isHost && fillBots ? 'ready' : 'waiting'}`}>
-              {isPeerConnected ? 'En la mesa' : isHost && fillBots ? 'Listo (Bot)' : 'Conectando...'}
-            </div>
-          </div>
-        </div>
-      );
-    }
+  // Teams breakdown: Team 0 (Nosotros) = even seat indices; Team 1 (Ellos) = odd seat indices
+  const team0Seats = currentSeats.filter(s => s.seatIndex % 2 === 0);
+  const team1Seats = currentSeats.filter(s => s.seatIndex % 2 === 1);
 
-    if (matchType === '2v2') {
-      return (
-        <div className="lobby-slots">
-          <div className="slot-player">
-            <div className="slot-left">
-              <div className="slot-avatar">🤠</div>
-              <div>
-                <div className="slot-name">{playerName} {isHost ? '(Anfitrión)' : '(Vos)'}</div>
-                <div className="slot-tag" style={{ color: '#2563eb' }}>Equipo 1: Nosotros</div>
-              </div>
-            </div>
-            <div className="slot-status ready">Conectado</div>
-          </div>
+  const renderSeatCard = (seat: RoomSeat) => {
+    const isOccupied = Boolean(seat.peerId && seat.name);
+    const isMe = seat.peerId === myPeerId || (seat.isHost && isHost);
+    const seatRoleLabel =
+      matchType === '1v1'
+        ? (seat.seatIndex === 0 ? 'Mano • Nosotros' : 'Pie • Ellos')
+        : matchType === '2v2'
+        ? (seat.seatIndex === 0 ? 'Mano • Tu Equipo' : seat.seatIndex === 2 ? 'Tu Compañero' : `Rival ${seat.seatIndex === 1 ? '1' : '2'}`)
+        : (seat.seatIndex === 0 ? 'Mano • Tu Equipo' : seat.team === 0 ? `Compañero ${seat.seatIndex === 2 ? '1' : '2'}` : `Rival ${seat.seatIndex === 1 ? '1' : seat.seatIndex === 3 ? '2' : '3'}`);
 
-          <div className="slot-player">
-            <div className="slot-left">
-              <div className="slot-avatar" style={{ borderColor: oppDisplayName ? 'var(--gold)' : '#555' }}>
-                {oppDisplayName ? '😎' : '🤖'}
-              </div>
-              <div>
-                <div className="slot-name">
-                  {oppDisplayName ? oppDisplayName : 'Don Florencio (Bot)'}
-                </div>
-                <div className="slot-tag" style={{ color: '#dc2626' }}>
-                  Equipo 2: Rival 1
-                </div>
-              </div>
-            </div>
-            <div className="slot-status ready">
-              {oppDisplayName ? 'En la mesa' : 'Listo (Bot)'}
-            </div>
-          </div>
-
-          <div className="slot-player">
-            <div className="slot-left">
-              <div className="slot-avatar">🤠</div>
-              <div>
-                <div className="slot-name">El Chaja (Bot)</div>
-                <div className="slot-tag" style={{ color: '#2563eb' }}>Equipo 1: Tu Compañero</div>
-              </div>
-            </div>
-            <div className="slot-status ready">Listo (Bot)</div>
-          </div>
-
-          <div className="slot-player">
-            <div className="slot-left">
-              <div className="slot-avatar">😼</div>
-              <div>
-                <div className="slot-name">El Zorro (Bot)</div>
-                <div className="slot-tag" style={{ color: '#dc2626' }}>Equipo 2: Rival 2</div>
-              </div>
-            </div>
-            <div className="slot-status ready">Listo (Bot)</div>
-          </div>
-        </div>
-      );
-    }
-
-    // 3v3 Sexteto
     return (
-      <div className="lobby-slots">
-        <div className="slot-player">
-          <div className="slot-left">
-            <div className="slot-avatar">🤠</div>
-            <div>
-              <div className="slot-name">{playerName} {isHost ? '(Anfitrión)' : '(Vos)'}</div>
-              <div className="slot-tag" style={{ color: '#2563eb' }}>Equipo 1: Nosotros (Mano)</div>
+      <div
+        key={seat.seatIndex}
+        className={`slot-player team-${seat.team} ${isOccupied ? 'occupied' : 'empty'} ${isMe ? 'is-me' : ''}`}
+      >
+        <div className="slot-left">
+          <div className="slot-avatar">
+            {isOccupied ? seat.avatar : '⏳'}
+          </div>
+          <div>
+            <div className="slot-name">
+              {isOccupied ? (
+                <>
+                  {seat.name} {isMe ? '(Vos)' : ''} {seat.isHost ? '👑' : ''}
+                </>
+              ) : (
+                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                  Asiento {seat.seatIndex + 1} Libre
+                </span>
+              )}
+            </div>
+            <div className="slot-tag" style={{ color: seat.team === 0 ? '#60a5fa' : '#f87171' }}>
+              {seatRoleLabel}
             </div>
           </div>
-          <div className="slot-status ready">Conectado</div>
         </div>
 
-        <div className="slot-player">
-          <div className="slot-left">
-            <div className="slot-avatar">{oppDisplayName ? '😎' : '🤖'}</div>
-            <div>
-              <div className="slot-name">{oppDisplayName ? oppDisplayName : 'Don Florencio (Bot)'}</div>
-              <div className="slot-tag" style={{ color: '#dc2626' }}>Equipo 2: Rival 1</div>
+        <div className="slot-right-actions">
+          {isOccupied ? (
+            <div className="slot-status ready">
+              {seat.isHost ? 'Anfitrión' : 'Listo'}
             </div>
-          </div>
-          <div className="slot-status ready">{oppDisplayName ? 'En la mesa' : 'Listo (Bot)'}</div>
-        </div>
-
-        <div className="slot-player">
-          <div className="slot-left">
-            <div className="slot-avatar">🤠</div>
-            <div>
-              <div className="slot-name">El Chaja (Bot)</div>
-              <div className="slot-tag" style={{ color: '#2563eb' }}>Equipo 1: Compañero 1</div>
-            </div>
-          </div>
-          <div className="slot-status ready">Listo (Bot)</div>
-        </div>
-
-        <div className="slot-player">
-          <div className="slot-left">
-            <div className="slot-avatar">😼</div>
-            <div>
-              <div className="slot-name">El Zorro (Bot)</div>
-              <div className="slot-tag" style={{ color: '#dc2626' }}>Equipo 2: Rival 2</div>
-            </div>
-          </div>
-          <div className="slot-status ready">Listo (Bot)</div>
-        </div>
-
-        <div className="slot-player">
-          <div className="slot-left">
-            <div className="slot-avatar">🧉</div>
-            <div>
-              <div className="slot-name">Martín Fierro (Bot)</div>
-              <div className="slot-tag" style={{ color: '#2563eb' }}>Equipo 1: Compañero 2</div>
-            </div>
-          </div>
-          <div className="slot-status ready">Listo (Bot)</div>
-        </div>
-
-        <div className="slot-player">
-          <div className="slot-left">
-            <div className="slot-avatar">🐎</div>
-            <div>
-              <div className="slot-name">Don Segundo (Bot)</div>
-              <div className="slot-tag" style={{ color: '#dc2626' }}>Equipo 2: Rival 3</div>
-            </div>
-          </div>
-          <div className="slot-status ready">Listo (Bot)</div>
+          ) : (
+            <button
+              className="btn-sit-here"
+              onClick={() => {
+                soundButton();
+                onChangeSeat?.(seat.seatIndex);
+              }}
+              title="Cambiarte a este asiento y equipo"
+            >
+              Sentarme acá
+            </button>
+          )}
         </div>
       </div>
     );
@@ -246,22 +163,24 @@ export default function OnlineLobby({
   return (
     <div className="lobby-screen">
       <div className="view-header">
-        <button className="btn-back" onClick={onCancel}>←</button>
-        <div className="view-title">{isHost ? 'Crear Sala Online' : 'Sala Online'}</div>
+        <button className="btn-back" onClick={onCancel} title="Salir al menú principal">←</button>
+        <div className="view-title">
+          {isHost ? `Crear Mesa Online (${matchType})` : `Mesa Online (${matchType})`}
+        </div>
         <div style={{ width: 36 }} />
       </div>
 
       <div className="lobby-content">
-        {/* Room Code Card */}
+        {/* Room Code Card with WhatsApp Invite */}
         <div className="room-code-badge">
-          <div className="code-title">Código de tu Sala ({matchType})</div>
+          <div className="code-title">Código de la Mesa ({matchType.toUpperCase()})</div>
           <div className="code-val">{roomCode}</div>
           <div className="room-actions-row">
             <button className="btn-copy-code" onClick={handleCopyLink}>
-              <span>{copied ? '✓ ¡Copiado!' : '📋 Copiar Enlace'}</span>
+              <span>{copied ? '✓ ¡Enlace Copiado!' : '📋 Copiar Enlace'}</span>
             </button>
             <button className="btn-copy-code wp-btn" onClick={handleShareWhatsApp}>
-              <span>💬 Enviar por WhatsApp</span>
+              <span>💬 Invitar por WhatsApp</span>
             </button>
           </div>
         </div>
@@ -275,40 +194,67 @@ export default function OnlineLobby({
                 className={`btn-matchtype ${matchType === '1v1' ? 'active' : ''}`}
                 onClick={() => { soundButton(); onSetMatchType('1v1'); }}
               >
-                ⚔️ 1 vs 1
+                ⚔️ 1 vs 1 (2 Jugadores)
               </button>
               <button
                 className={`btn-matchtype ${matchType === '2v2' ? 'active' : ''}`}
                 onClick={() => { soundButton(); onSetMatchType('2v2'); }}
               >
-                👥 2 vs 2
+                👥 2 vs 2 (4 Jugadores)
               </button>
               <button
                 className={`btn-matchtype ${matchType === '3v3' ? 'active' : ''}`}
                 onClick={() => { soundButton(); onSetMatchType('3v3'); }}
               >
-                🎪 3 vs 3
+                🎪 3 vs 3 (6 Jugadores)
               </button>
             </div>
           </div>
         )}
 
-        {/* Players in lobby */}
+        {/* Real Player Seats by Team */}
         <div className="lobby-section">
           <div className="section-label-row">
-            <span className="section-label">Jugadores ({playerCount} en la Mesa)</span>
-            {isHost && (
-              <label className="fill-bots-toggle">
+            <span className="section-label">
+              Mesa ({connectedCount} de {totalSeats} Personas Conectadas)
+            </span>
+            {isHost && !isFull && (
+              <label className="fill-bots-toggle" title="Si tus amigos no llegan, completarás los asientos vacíos con Bots inteligentes">
                 <input
                   type="checkbox"
                   checked={fillBots}
                   onChange={e => setFillBots(e.target.checked)}
                 />
-                <span>Completar con Bots</span>
+                <span>Completar vacíos con Bots</span>
               </label>
             )}
           </div>
-          {renderSlots()}
+
+          {/* Team 1: Nosotros */}
+          <div className="lobby-team-group team-nosotros">
+            <div className="team-group-header blue">
+              <span>🤝 Equipo 1 (Nosotros)</span>
+              <span className="team-count">
+                {team0Seats.filter(s => s.peerId).length} / {team0Seats.length}
+              </span>
+            </div>
+            <div className="lobby-slots">
+              {team0Seats.map(renderSeatCard)}
+            </div>
+          </div>
+
+          {/* Team 2: Ellos */}
+          <div className="lobby-team-group team-ellos" style={{ marginTop: '10px' }}>
+            <div className="team-group-header red">
+              <span>⚔️ Equipo 2 (Ellos)</span>
+              <span className="team-count">
+                {team1Seats.filter(s => s.peerId).length} / {team1Seats.length}
+              </span>
+            </div>
+            <div className="lobby-slots">
+              {team1Seats.map(renderSeatCard)}
+            </div>
+          </div>
         </div>
 
         {/* Game Rules Config (Host only) */}
@@ -351,7 +297,7 @@ export default function OnlineLobby({
           </div>
         )}
 
-        {/* Status text */}
+        {/* Live Network Status */}
         <div className="network-status-box">
           <span className="status-dot pulsing">●</span>
           <span className="status-text">{statusInfo}</span>
@@ -361,24 +307,28 @@ export default function OnlineLobby({
       {/* Start Button */}
       {isHost ? (
         <button
-          className="btn-launch"
-          disabled={!peerName && !fillBots}
+          className={`btn-launch ${isFull || fillBots ? 'ready-to-launch' : ''}`}
+          disabled={!isFull && !fillBots}
           onClick={() => {
             soundButton();
-            onStartMatch();
+            onStartMatch(fillBots);
           }}
         >
           <span>
-            {peerName
-              ? `¡Comenzar Partida ${matchType} con ${peerName}! 🃏`
+            {isFull
+              ? `¡Comenzar Partida ${matchType} (${connectedCount}/${totalSeats} Jugadores)! 🃏`
               : fillBots
-              ? `¡Comenzar Partida ${matchType} (con Bots)! 🤖`
-              : 'Esperando que entre tu amigo...'}
+              ? `¡Comenzar Partida ${matchType} (${connectedCount} personas + ${totalSeats - connectedCount} bots)! 🤖`
+              : `Esperando que entren más amigos (${connectedCount}/${totalSeats})... ⏳`}
           </span>
         </button>
       ) : (
         <div className="guest-waiting-box">
-          <p>Esperando que el anfitrión comience la partida {matchType}...</p>
+          <p>
+            {isFull
+              ? `¡Todos conectados (${connectedCount}/${totalSeats})! Esperando que el anfitrión inicie...`
+              : `Esperando que se sumen más jugadores (${connectedCount}/${totalSeats})...`}
+          </p>
         </div>
       )}
     </div>

@@ -109,6 +109,17 @@ export type GameAction =
   | { type: 'CLEAR_MESSAGE' }
   | { type: 'BACK_TO_MENU' };
 
+export interface RoomSeat {
+  seatIndex: number;
+  peerId: string;
+  name: string;
+  team: 0 | 1;
+  avatar: string;
+  isHost: boolean;
+  isConnected: boolean;
+  isBot?: boolean;
+}
+
 export interface RoomConfig {
   goal: 15 | 30;
   withFlor: boolean;
@@ -116,6 +127,8 @@ export interface RoomConfig {
   playerName: string;
   opponentName: string;
   matchType?: MatchType;
+  mySeatIndex?: number;
+  seats?: RoomSeat[];
 }
 
 export function otherPlayer(p: PlayerId): PlayerId {

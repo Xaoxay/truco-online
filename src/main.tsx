@@ -94,30 +94,37 @@ function MainApp() {
         if (info) setNetworkStatusInfo(info);
       },
       onMessage: (msg: NetworkMessage) => {
-        if (msg.type === 'JOIN') {
+        if (msg.type === 'JOIN' || msg.type === 'JOIN_REQUEST') {
           setPeerName(msg.playerName);
           setConfig(prev => ({
             ...prev,
             opponentName: msg.playerName,
+            seats: net.seats,
+            mySeatIndex: net.mySeatIndex,
           }));
-          net.sendMessage({
-            type: 'JOIN_ACK',
-            hostName: hostPlayerName,
-            goal: configRef.current.goal,
-            withFlor: configRef.current.withFlor,
-          });
+        } else if (msg.type === 'ROOM_STATE') {
+          setConfig(prev => ({
+            ...prev,
+            matchType: msg.matchType,
+            goal: msg.goal,
+            withFlor: msg.withFlor,
+            seats: msg.seats,
+            mySeatIndex: net.mySeatIndex,
+          }));
         }
       },
     });
 
     networkRef.current = net;
-    net.createRoom(code);
+    net.createRoom(code, hostPlayerName, config.matchType || '1v1', config.goal, config.withFlor);
 
     setConfig(prev => ({
       ...prev,
       mode: 'online',
       playerName: hostPlayerName,
       opponentName: 'Amigo',
+      seats: net.seats,
+      mySeatIndex: 0,
     }));
 
     setView('lobby');
@@ -136,16 +143,44 @@ function MainApp() {
         if (info) setNetworkStatusInfo(info);
       },
       onMessage: (msg: NetworkMessage) => {
-        if (msg.type === 'JOIN_ACK') {
+        if (msg.type === 'ROOM_STATE') {
+          setPeerName(msg.hostName);
+          setConfig(prev => ({
+            ...prev,
+            matchType: msg.matchType,
+            goal: msg.goal,
+            withFlor: msg.withFlor,
+            opponentName: msg.hostName,
+            seats: msg.seats,
+            mySeatIndex: net.mySeatIndex,
+          }));
+        } else if (msg.type === 'JOIN_ACK') {
           setPeerName(msg.hostName);
           setConfig(prev => ({
             ...prev,
             goal: msg.goal,
             withFlor: msg.withFlor,
             opponentName: msg.hostName,
+            matchType: msg.matchType || prev.matchType,
+            seats: msg.seats || prev.seats,
+            mySeatIndex: net.mySeatIndex,
           }));
-        } else if (msg.type === 'HOST_START_MATCH' || msg.type === 'START_ROUND') {
-          // El Anfitrión inició la partida: si vienen cartas guardarlas y montar el juego
+        } else if (
+          msg.type === 'START_MATCH_MULTI' ||
+          msg.type === 'HOST_START_MATCH' ||
+          msg.type === 'START_ROUND' ||
+          msg.type === 'START_ROUND_MULTI'
+        ) {
+          if (msg.type === 'START_MATCH_MULTI') {
+            setConfig(prev => ({
+              ...prev,
+              matchType: msg.matchType,
+              goal: msg.goal,
+              withFlor: msg.withFlor,
+              seats: msg.seats,
+              mySeatIndex: net.mySeatIndex,
+            }));
+          }
           if (msg.type === 'START_ROUND') {
             setPendingRoundData(msg);
           }
@@ -162,36 +197,56 @@ function MainApp() {
       mode: 'online',
       playerName: guestPlayerName,
       opponentName: 'Anfitrión',
+      mySeatIndex: net.mySeatIndex,
     }));
 
     setView('lobby');
   };
 
   // ─── Host Starts Match ─────────────────────────────────────────
-  const handleHostStartMatch = () => {
-    // Si no hay jugador remoto (el anfitrión está solo o probando con bots)
-    if (!peerName) {
-      networkRef.current?.destroy();
-      networkRef.current = null;
-      setConfig(prev => ({
-        ...prev,
-        mode: 'bot',
-        opponentName: 'Don Florencio',
-      }));
+  const handleHostStartMatch = (fillWithBots: boolean = false) => {
+    const net = networkRef.current;
+    if (!net) {
       setView('game');
       return;
     }
 
-    if (networkRef.current) {
-      // Avisar al invitado por canal seguro que ya comienza el partido
-      networkRef.current.sendMessage({ type: 'HOST_START_MATCH' });
-      setConfig(prev => ({
-        ...prev,
-        mode: 'online',
-        opponentName: peerName,
-      }));
-      setView('game');
-    }
+    const botNames = ['Don Florencio', 'El Chajá', 'El Zorro', 'Martín Fierro', 'Don Segundo'];
+    const finalSeats = net.seats.map((s, idx) => {
+      if (s.peerId) return s;
+      if (fillWithBots) {
+        return {
+          seatIndex: idx,
+          peerId: `bot_${idx}`,
+          name: botNames[idx - 1] || `Bot ${idx}`,
+          team: (idx % 2 === 0 ? 0 : 1) as 0 | 1,
+          avatar: ['🤠', '😎', '🧉', '😼', '🐎', '🎭'][idx] || '🤖',
+          isHost: false,
+          isConnected: true,
+          isBot: true,
+        };
+      }
+      return s;
+    });
+    net.seats = finalSeats;
+
+    net.sendMessage({
+      type: 'START_MATCH_MULTI',
+      matchType: net.matchType,
+      seats: finalSeats,
+      goal: config.goal,
+      withFlor: config.withFlor,
+    });
+    net.sendMessage({ type: 'HOST_START_MATCH' });
+
+    setConfig(prev => ({
+      ...prev,
+      mode: 'online',
+      matchType: net.matchType,
+      mySeatIndex: 0,
+      seats: finalSeats,
+    }));
+    setView('game');
   };
 
   // ─── Start Offline / Bot Game ──────────────────────────────────
@@ -235,9 +290,23 @@ function MainApp() {
           goal={config.goal}
           withFlor={config.withFlor}
           matchType={config.matchType || '1v1'}
-          onSetGoal={g => setConfig(prev => ({ ...prev, goal: g }))}
-          onSetFlor={f => setConfig(prev => ({ ...prev, withFlor: f }))}
-          onSetMatchType={m => setConfig(prev => ({ ...prev, matchType: m }))}
+          seats={config.seats || networkRef.current?.seats}
+          myPeerId={networkRef.current?.myPeerId}
+          onSetGoal={g => {
+            setConfig(prev => ({ ...prev, goal: g }));
+            networkRef.current?.setRoomConfig(config.matchType || '1v1', g, config.withFlor);
+          }}
+          onSetFlor={f => {
+            setConfig(prev => ({ ...prev, withFlor: f }));
+            networkRef.current?.setRoomConfig(config.matchType || '1v1', config.goal, f);
+          }}
+          onSetMatchType={m => {
+            setConfig(prev => ({ ...prev, matchType: m }));
+            networkRef.current?.setRoomConfig(m, config.goal, config.withFlor);
+          }}
+          onChangeSeat={targetSeat => {
+            networkRef.current?.requestChangeSeat(targetSeat);
+          }}
           onStartMatch={handleHostStartMatch}
           onCancel={handleCancelOnline}
         />
