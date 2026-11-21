@@ -1575,6 +1575,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     );
   };
 
+  const getShortSeatName = (name: string, isMe = false) => {
+    if (isMe) return 'Vos';
+    const clean = name.trim();
+    if (clean.startsWith('El ')) return clean.replace('El ', '');
+    if (clean.startsWith('Don ')) return clean.replace('Don ', '');
+    if (clean.includes('Martín')) return 'M. Fierro';
+    return clean.split(' ')[0];
+  };
+
   const renderFixedTrickSlot = (seatIdx: number) => {
     const seat = defaultMultiSeats[seatIdx];
     if (!seat) return null;
@@ -1588,7 +1597,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         title={`Lugar fijo de ${seat.name}`}
       >
         <span className={`slot-owner-tag team-${seat.team}`}>
-          {seat.name.split(' ')[0]}
+          {getShortSeatName(seat.name, seat.isMe)}
         </span>
         <div className="fixed-slot-card-box">
           {play ? (
