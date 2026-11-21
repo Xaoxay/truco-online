@@ -169,7 +169,8 @@ function MainApp() {
           msg.type === 'START_MATCH_MULTI' ||
           msg.type === 'HOST_START_MATCH' ||
           msg.type === 'START_ROUND' ||
-          msg.type === 'START_ROUND_MULTI'
+          msg.type === 'START_ROUND_MULTI' ||
+          msg.type === 'DEAL_HAND_MULTI'
         ) {
           if (msg.type === 'START_MATCH_MULTI') {
             setConfig(prev => ({
@@ -181,7 +182,7 @@ function MainApp() {
               mySeatIndex: net.mySeatIndex,
             }));
           }
-          if (msg.type === 'START_ROUND') {
+          if (msg.type === 'START_ROUND' || msg.type === 'START_ROUND_MULTI' || msg.type === 'DEAL_HAND_MULTI') {
             setPendingRoundData(msg);
           }
           setView('game');
@@ -243,7 +244,7 @@ function MainApp() {
       ...prev,
       mode: 'online',
       matchType: net.matchType,
-      mySeatIndex: 0,
+      mySeatIndex: net.mySeatIndex,
       seats: finalSeats,
     }));
     setView('game');

@@ -427,6 +427,10 @@ export class TrucoNetwork {
             this.stopHandshake();
             if (msg.seats) this.seats = msg.seats;
             if (msg.matchType) this.matchType = msg.matchType;
+            const mySeat = this.seats.find(s => s.peerId === this.myPeerId);
+            if (mySeat) {
+              this.mySeatIndex = mySeat.seatIndex;
+            }
             this.callbacks.onStatusChange('connected', `¡Conectado con ${msg.hostName}!`);
           }
 

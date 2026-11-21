@@ -209,7 +209,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const canPlayerCallEnvido =
     !envidoPlayed &&
     currentTrick === 0 &&
-    (isMulti ? (multiHands[0]?.length ?? 3) === 3 : playerHand.length === 3);
+    playerHand.length === 3;
 
   // Modal para mostrar la comparativa completa de Envido con ambos tantos
   const [envidoModal, setEnvidoModal] = useState<{
@@ -693,6 +693,16 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     setCurrentTrickPlays(updatedPlays);
     setFirstCardPlayed(true);
 
+    if (config.mode === 'online' && network && network.isHost) {
+      network.sendMessage({
+        type: 'PLAY_CARD_MULTI',
+        seatIndex: seatIdx,
+        team: seatInfo.team,
+        card,
+        trickIndex: trickIdx,
+      });
+    }
+
     const seatCount = defaultMultiSeats.length;
     if (updatedPlays.length === seatCount) {
       setCurrentTurnSeat(-1); // Nadie juega mientras se contempla la mesa
@@ -885,6 +895,20 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   // Initialize first round on mount
   useEffect(() => {
     if (isMulti) {
+      if (config.mode === 'online' && network && !network.isHost) {
+        if (
+          initialRoundData &&
+          initialRoundData.hand &&
+          initialRoundData.hand.length > 0 &&
+          (initialRoundData.roundNum ?? 1) > lastRoundNumRef.current
+        ) {
+          guestReceivedHandRef.current = initialRoundData.hand;
+          startNewRoundMultiGuest(initialRoundData.manoSeat ?? 0, initialRoundData.hand);
+        }
+        // Avisar al anfitrión que este invitado ya montó el tablero en multi
+        network.sendMessage({ type: 'GUEST_READY' });
+        return;
+      }
       startNewRoundMulti(0);
       return;
     }
@@ -1050,6 +1074,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             type: msg.call as any,
             caller: 'opponent',
           });
+
+          if (network?.isHost) {
+            const oppSeats = defaultMultiSeats.filter(s => s.team === myTeam);
+            // Si el anfitrión y sus compañeros que deben responder son bots (o si le cantaron a un equipo de bots)
+            const targetSeats = defaultMultiSeats.filter(s => s.team !== msg.team);
+            if (targetSeats.every(s => s.isBot)) {
+              later(() => botRespondToCall(msg.call), 1000);
+            }
+          }
         }
         break;
       }
@@ -1084,6 +1117,27 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       }
       case 'GUEST_READY': {
         if (network?.isHost) {
+          if (isMulti) {
+            if (multiInitialHandsRef.current.length === defaultMultiSeats.length) {
+              for (let s = 1; s < defaultMultiSeats.length; s++) {
+                network.sendMessage({
+                  type: 'DEAL_HAND_MULTI',
+                  targetSeat: s,
+                  hand: multiInitialHandsRef.current[s],
+                  manoSeat: manoSeatRef.current,
+                  roundNum: roundNumRef.current,
+                });
+              }
+              network.sendMessage({
+                type: 'START_ROUND_MULTI',
+                manoSeat: manoSeatRef.current,
+                roundNum: roundNumRef.current,
+              });
+            } else {
+              startNewRoundMulti(0);
+            }
+            break;
+          }
           if (initialOppHandRef.current.length === 3) {
             // Reenvía la mano actual; el invitado ignora si ya la tiene (mismo roundNum)
             network.sendMessage({
@@ -1469,6 +1523,13 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
             team: defaultMultiSeats[mySeatIdx].team,
             call: callType,
           });
+          if (network.isHost) {
+            const oppTeam = defaultMultiSeats[mySeatIdx].team === 0 ? 1 : 0;
+            const oppSeats = defaultMultiSeats.filter(s => s.team === oppTeam);
+            if (oppSeats.every(s => s.isBot)) {
+              later(() => botRespondToCall(callType), 1000);
+            }
+          }
         } else {
           network.sendMessage({ type: 'CALL', call: callType });
         }
@@ -1694,17 +1755,27 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       if (isMulti) triggerSeatSpeech(1, respText, respType);
     }
 
-    if (config.mode === 'online' && network && responder === 'player') {
-      if (isMulti) {
+    if (config.mode === 'online' && network) {
+      if (responder === 'player') {
+        if (isMulti) {
+          network.sendMessage({
+            type: 'RESPONSE_MULTI',
+            seatIndex: mySeatIdx,
+            team: defaultMultiSeats[mySeatIdx].team,
+            resp,
+            toCall: callType,
+          });
+        } else {
+          network.sendMessage({ type: 'RESPONSE', resp, toCall: callType });
+        }
+      } else if (network.isHost && isMulti) {
         network.sendMessage({
           type: 'RESPONSE_MULTI',
-          seatIndex: mySeatIdx,
-          team: defaultMultiSeats[mySeatIdx].team,
+          seatIndex: 1,
+          team: (defaultMultiSeats[mySeatIdx]?.team === 0 ? 1 : 0),
           resp,
           toCall: callType,
         });
-      } else {
-        network.sendMessage({ type: 'RESPONSE', resp, toCall: callType });
       }
     }
 
@@ -2351,7 +2422,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           </div>
 
           {/* Botones de acción directa para Tirar Carta (no depende exclusivamente de tocar el naipe) */}
-          {(isMulti ? currentTurnSeat === 0 && pendingCall === null : turn === 'player' && pendingCall === null) && playerHand.length > 0 && (
+          {(isMulti ? currentTurnSeat === mySeatIdx && pendingCall === null : turn === 'player' && pendingCall === null) && playerHand.length > 0 && (
             <div className="quick-throw-cards-bar" role="toolbar" aria-label="Tirar Carta">
               <span className="quick-throw-title">Tirar:</span>
               {playerHand.map((c, idx) => (
@@ -2452,7 +2523,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           <PlayerHandsHoldingCards
             cards={hideMyCards ? [] : playerHand}
             onPlayCard={handlePlayCard}
-            canPlay={isMulti ? currentTurnSeat === 0 && pendingCall === null : turn === 'player' && pendingCall === null}
+            canPlay={isMulti ? currentTurnSeat === mySeatIdx && pendingCall === null : turn === 'player' && pendingCall === null}
             isDesktop={isDesktop}
           />
 
