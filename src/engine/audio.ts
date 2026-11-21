@@ -40,6 +40,13 @@ export function soundCardDeal() {
   tone(280, 'triangle', 0.06, 0.15);
 }
 
+export function soundShuffle() {
+  const freqs = [220, 260, 240, 280, 250, 310, 270, 330];
+  freqs.forEach((freq, idx) => {
+    setTimeout(() => tone(freq, 'triangle', 0.04, 0.1), idx * 65);
+  });
+}
+
 export function soundCall() {
   tone(440, 'square', 0.07, 0.12);
   setTimeout(() => tone(660, 'square', 0.15, 0.18), 80);

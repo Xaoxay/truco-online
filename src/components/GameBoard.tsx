@@ -13,6 +13,8 @@ import {
   soundLoseRound,
   soundMatchWin,
   soundButton,
+  soundCardDeal,
+  soundShuffle,
 } from '../engine/audio';
 import { dealHands, dealMultiHands } from '../engine/deck';
 import {
@@ -169,6 +171,9 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const setCurrentTrick = (v: number) => { currentTrickRef.current = v; setCurrentTrickState(v); };
   const [tricks, setTricksState] = useState<PlayedSlot[]>(emptyTricks);
   const setTricks = (v: PlayedSlot[]) => { tricksRef.current = v; setTricksState(v); };
+
+  // Dealing animation state ('idle' | 'shuffling' | 'dealing')
+  const [dealPhase, setDealPhase] = useState<'idle' | 'shuffling' | 'dealing'>('idle');
 
   // Turn & phase
   const [mano, setManoState] = useState<PlayerId>('player');
@@ -456,21 +461,49 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     initialOppHandRef.current = hands[1] ? [...hands[1]] : [];
     setInitialPlayerHand(hands[0]);
     setInitialOppHand(hands[1] ? [...hands[1]] : []);
-    setPlayerHand(hands[0]);
-    setOppHandCards(hands[1] ? [...hands[1]] : []);
-    setOppCardsCount(3);
-    setMultiHands(hands);
+
+    // Durante el barajado y reparto las manos arrancan vacías
+    setPlayerHand([]);
+    setOppHandCards([]);
+    setOppCardsCount(0);
+    setMultiHands(Array.from({ length: seatCount }, () => []));
     setCurrentTrickPlays([]);
     setMultiTrickWinners([]);
     setManoSeat(nextManoSeat);
-    setCurrentTurnSeat(nextManoSeat);
+    setCurrentTurnSeat(-1); // Nadie juega mientras se reparte
 
-    soundWinRound();
-    showToast(`¡Nueva mano (${matchType}) repartida para ${seatCount} gauchos!`);
+    // Fase 1: El mazo se traslada al centro de la mesa y baraja
+    setDealPhase('shuffling');
+    soundShuffle();
 
-    if (nextManoSeat !== 0) {
-      later(() => runMultiBotTurn(nextManoSeat, hands, 0, []), 900);
-    }
+    // Fase 2: Tras mezclar (850ms), vuelan las cartas hacia los jugadores
+    later(() => {
+      if (matchOverRef.current) return;
+      setDealPhase('dealing');
+      soundCardDeal();
+      later(() => soundCardDeal(), 180);
+      later(() => soundCardDeal(), 360);
+
+      // Fase 3: Tras repartir (650ms), el mazo se acomoda en su lugar tradicional
+      // (a la derecha del que mezcló / a la izquierda del que empieza) y arranca la mano
+      later(() => {
+        if (matchOverRef.current) return;
+        setPlayerHand(hands[0]);
+        setOppHandCards(hands[1] ? [...hands[1]] : []);
+        setOppCardsCount(3);
+        setMultiHands(hands);
+        setDealPhase('idle');
+        setCurrentTurnSeat(nextManoSeat);
+
+        const manoName = defaultMultiSeats[nextManoSeat]?.name || 'Vos';
+        soundWinRound();
+        showToast(`¡Mano repartida! Es Mano y empieza ${manoName}`);
+
+        if (nextManoSeat !== 0) {
+          later(() => runMultiBotTurn(nextManoSeat, hands, 0, []), 900);
+        }
+      }, 650);
+    }, 850);
   };
 
   const runMultiBotTurn = (
@@ -607,16 +640,16 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     const { playerHand: pHand, opponentHand: oHand } = dealHands();
     resetRoundState();
     setMano(nextMano);
-    setTurn(nextMano);
 
     initialPlayerHandRef.current = pHand;
     initialOppHandRef.current = oHand;
     setInitialPlayerHand(pHand);
     setInitialOppHand(oHand);
 
-    setPlayerHand(pHand);
-    setOppHandCards(oHand);
-    setOppCardsCount(3);
+    setPlayerHand([]);
+    setOppHandCards([]);
+    setOppCardsCount(0);
+    setTurn('none' as any);
 
     if (config.mode === 'online' && network && network.isHost) {
       roundNumRef.current += 1;
@@ -630,18 +663,37 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       });
     }
 
-    if (isPassAndPlay) {
-      setPassPlayFor(nextMano);
-      setPassPlayCurtain(true);
-    } else {
-      soundWinRound();
-      showToast('¡Nueva mano repartida!');
-    }
+    setDealPhase('shuffling');
+    soundShuffle();
 
-    // Si el bot es mano, juega primero
-    if (config.mode === 'bot' && nextMano === 'opponent') {
-      later(() => runBotTurn(), 900);
-    }
+    later(() => {
+      if (matchOverRef.current) return;
+      setDealPhase('dealing');
+      soundCardDeal();
+      later(() => soundCardDeal(), 200);
+
+      later(() => {
+        if (matchOverRef.current) return;
+        setPlayerHand(pHand);
+        setOppHandCards(oHand);
+        setOppCardsCount(3);
+        setDealPhase('idle');
+        setTurn(nextMano);
+
+        if (isPassAndPlay) {
+          setPassPlayFor(nextMano);
+          setPassPlayCurtain(true);
+        } else {
+          soundWinRound();
+          showToast('¡Nueva mano repartida!');
+        }
+
+        // Si el bot es mano, juega primero
+        if (config.mode === 'bot' && nextMano === 'opponent') {
+          later(() => runBotTurn(), 900);
+        }
+      }, 550);
+    }, 850);
   };
 
   /** Invitado: aplica una mano repartida por el anfitrión. */
@@ -1655,11 +1707,37 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
         {/* Center Felt / Table Area */}
         {isMulti ? (
-          <div className="table-felt-multi">
+          <div className={`table-felt-multi match-${matchType}`}>
             {centerBanner && (
               <div className={`center-call-banner active ${centerBanner.type || ''}`}>
                 <span className="banner-title">{centerBanner.text}</span>
                 {centerBanner.sub && <span className="banner-sub">{centerBanner.sub}</span>}
+              </div>
+            )}
+
+            {/* Mazo que se desplaza: al centro en barajado/reparto, y luego a la izquierda del que empieza / derecha del que mezcló */}
+            <div
+              className={`table-felt-deck-carrier deck-dock-mano-${manoSeat} ${dealPhase === 'shuffling' || dealPhase === 'dealing' ? 'deck-center-stage' : ''}`}
+            >
+              <TableDeck
+                onShuffleAndCut={handleShuffleAndCut}
+                isShuffling={dealPhase === 'shuffling' || isShufflingDeck}
+              />
+            </div>
+
+            {/* Animación de Naipes Volando desde el centro hacia cada jugador */}
+            {dealPhase === 'dealing' && (
+              <div className="dealing-flying-cards-overlay" aria-hidden="true">
+                <div className="flying-card fly-to-top"><CardBack small /></div>
+                <div className="flying-card fly-to-left"><CardBack small /></div>
+                <div className="flying-card fly-to-right"><CardBack small /></div>
+                <div className="flying-card fly-to-bottom"><CardBack small /></div>
+                {matchType === '3v3' && (
+                  <>
+                    <div className="flying-card fly-to-top-left"><CardBack small /></div>
+                    <div className="flying-card fly-to-top-right"><CardBack small /></div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1683,12 +1761,15 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
               {/* Cards played in this trick - Lugares Fijos para Cada Jugador */}
               <div className="table-center-felt-cards">
                 <div className="turn-flow-ring" aria-hidden="true" />
-                <div className="multi-deck-pos">
-                  <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
-                </div>
 
                 <div className="trick-felt-header">
-                  <span className="trick-felt-badge">MESA • {currentTrick + 1}ª BAZA</span>
+                  <span className="trick-felt-badge">
+                    {dealPhase === 'shuffling'
+                      ? '🃏 MEZCLANDO EL MAZO...'
+                      : dealPhase === 'dealing'
+                      ? '🎴 REPARTIENDO NAIPES...'
+                      : `MESA • ${currentTrick + 1}ª BAZA`}
+                  </span>
                 </div>
 
                 <div className={`fixed-trick-grid fixed-grid-${matchType}`}>
@@ -1757,10 +1838,25 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                   {centerBanner.sub && <span className="banner-sub">{centerBanner.sub}</span>}
                 </div>
               )}
-              <div className="table-center-layout">
-                {/* Mazo al costado para mezclar / cortar y ver quién arranca */}
-                <TableDeck onShuffleAndCut={handleShuffleAndCut} isShuffling={isShufflingDeck} />
 
+              {/* Mazo dinámico 1v1: al centro en barajado/reparto, luego a la izquierda del que empieza */}
+              <div
+                className={`table-felt-deck-carrier deck-dock-mano-1v1-${mano} ${dealPhase === 'shuffling' || dealPhase === 'dealing' ? 'deck-center-stage' : ''}`}
+              >
+                <TableDeck
+                  onShuffleAndCut={handleShuffleAndCut}
+                  isShuffling={dealPhase === 'shuffling' || isShufflingDeck}
+                />
+              </div>
+
+              {dealPhase === 'dealing' && (
+                <div className="dealing-flying-cards-overlay" aria-hidden="true">
+                  <div className="flying-card fly-to-top"><CardBack small /></div>
+                  <div className="flying-card fly-to-bottom"><CardBack small /></div>
+                </div>
+              )}
+
+              <div className="table-center-layout">
                 <div className="trick-slots-container">
                   {tricks.map((trick, idx) => (
                     <div key={idx} className={`trick-column ${trick.winner ? `trick-won-${trick.winner}` : ''}`}>

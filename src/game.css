@@ -2712,8 +2712,186 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   gap: 8px;
 }
 
+/* ========================================================
+   MESA EN PC / ESCRITORIO (AMPLIA, MAJESTUOSA Y CENTRADA)
+   ======================================================== */
+.game-layout-wrapper.desktop-board-layout {
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.desktop-board-layout .game-table-container.wooden-table {
+  padding: 10px 24px 14px 24px;
+  height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* El paño de la mesa en PC ahora es MUCHO más grande */
+.desktop-board-layout .table-felt-multi {
+  width: 96%;
+  max-width: 1140px;
+  min-height: 480px;
+  max-height: 62vh;
+  flex: 1;
+  margin: 6px auto;
+  padding: 16px 26px;
+  border-width: 9px;
+  border-radius: 52px;
+  box-shadow:
+    inset 0 0 65px rgba(0, 0, 0, 0.92),
+    inset 0 2px 5px rgba(255, 255, 255, 0.22),
+    0 16px 45px rgba(0, 0, 0, 0.9);
+}
+
+.desktop-board-layout .table-row-top {
+  gap: 24px;
+  margin-bottom: 6px;
+}
+
+.desktop-board-layout .table-row-middle {
+  margin: 8px 0;
+}
+
+/* Estaciones de cada jugador más grandes y legibles */
+.desktop-board-layout .seat-station {
+  transform: none !important;
+}
+
+.desktop-board-layout .seat-badge-box {
+  padding: 6px 14px;
+  border-radius: 18px;
+  gap: 9px;
+}
+
+.desktop-board-layout .seat-avatar-wrap {
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+}
+
+.desktop-board-layout .seat-name {
+  font-size: 13.5px;
+}
+
+.desktop-board-layout .seat-team-badge {
+  font-size: 10.5px;
+  padding: 2px 7px;
+}
+
+.desktop-board-layout .seat-count-tag {
+  font-size: 11px;
+}
+
+.desktop-board-layout .seat-fanned-hand {
+  height: 44px;
+  margin-top: 4px;
+}
+
+.desktop-board-layout .seat-mini-card-wrapper {
+  width: 28px;
+  height: 42px;
+  margin-left: -14px;
+}
+
+/* Centro de la mesa con los casilleros fijos más amplios */
+.desktop-board-layout .table-center-felt-cards {
+  max-width: 520px;
+  min-height: 230px;
+  padding: 12px 20px;
+  border-radius: 28px;
+  margin: 0 16px;
+}
+
+.desktop-board-layout .trick-felt-badge {
+  font-size: 13px;
+  padding: 3px 14px;
+  border-radius: 14px;
+}
+
+.desktop-board-layout .fixed-trick-grid {
+  gap: 12px;
+}
+
+.desktop-board-layout .fixed-grid-row {
+  gap: 16px;
+}
+
+.desktop-board-layout .fixed-trick-slot {
+  gap: 4px;
+}
+
+.desktop-board-layout .fixed-trick-slot .slot-owner-tag {
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 5px;
+}
+
+.desktop-board-layout .fixed-slot-card-box {
+  width: 54px;
+  height: 80px;
+  border-radius: 8px;
+}
+
+.desktop-board-layout .fixed-slot-card-box .truco-card-argentina.small-card {
+  width: 54px !important;
+  height: 80px !important;
+  border-radius: 8px;
+}
+
+.desktop-board-layout .empty-card-placeholder .placeholder-avatar {
+  font-size: 20px;
+}
+
+/* Área del jugador inferior en PC */
+.desktop-board-layout .player-area {
+  margin-top: 4px;
+  padding-bottom: 8px;
+  width: 100%;
+}
+
+.desktop-board-layout .player-badge-container {
+  margin-bottom: 6px;
+}
+
+.desktop-board-layout .player-badge {
+  padding: 5px 16px;
+  font-size: 14px;
+}
+
+.desktop-board-layout .player-callouts-bar {
+  margin: 6px 0 8px 0;
+  gap: 10px;
+}
+
+.desktop-board-layout .btn-callout {
+  padding: 7px 16px;
+  font-size: 13px;
+}
+
+.desktop-board-layout .player-hands-holder {
+  height: 132px;
+}
+
+.desktop-board-layout .player-hands-holder .truco-card-argentina {
+  width: 82px;
+  height: 124px;
+  border-radius: 10px;
+}
+
 .desktop-view .felt-center {
   padding: 10px 0;
+  width: 90%;
+  max-width: 860px;
+  min-height: 380px;
 }
 
 .desktop-view .trick-slots-container {
@@ -3234,6 +3412,164 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 @keyframes dropCard {
   from { opacity: 0; transform: scale(1.18) translateY(-10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ─── Mazo Dinámico en el Paño (Baraja al centro y luego va al lugar tradicional de la Mano) ─── */
+.table-felt-deck-carrier {
+  position: absolute;
+  z-index: 20;
+  transition: all 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+}
+
+/* En el centro durante el barajado / reparto */
+.table-felt-deck-carrier.deck-center-stage {
+  top: 50% !important;
+  left: 50% !important;
+  bottom: auto !important;
+  right: auto !important;
+  transform: translate(-50%, -50%) scale(1.28) !important;
+  z-index: 60 !important;
+  filter: drop-shadow(0 0 25px rgba(244, 196, 48, 0.45));
+}
+
+/* Posición tradicional: a la derecha del que mezcló, o sea a la izquierda del que empieza */
+/* En 3v3 (6 jugadores: 0=Vos, 1=Don Florencio, 2=El Chajá, 3=El Zorro, 4=Martín Fierro, 5=Don Segundo) */
+.table-felt-deck-carrier.deck-dock-mano-0 {
+  bottom: 14px;
+  right: 28px;
+  transform: scale(0.9);
+}
+
+.table-felt-deck-carrier.deck-dock-mano-1 {
+  bottom: 18px;
+  left: 28px;
+  transform: scale(0.9);
+}
+
+.table-felt-deck-carrier.deck-dock-mano-2 {
+  top: 22%;
+  left: 22px;
+  transform: scale(0.9);
+}
+
+.table-felt-deck-carrier.deck-dock-mano-3 {
+  top: 10px;
+  left: 36%;
+  transform: scale(0.9);
+}
+
+.table-felt-deck-carrier.deck-dock-mano-4 {
+  top: 10px;
+  right: 36%;
+  transform: scale(0.9);
+}
+
+.table-felt-deck-carrier.deck-dock-mano-5 {
+  top: 22%;
+  right: 22px;
+  transform: scale(0.9);
+}
+
+/* En 2v2 (4 jugadores: 0=Vos, 1=Don Florencio, 2=El Chajá arriba, 3=El Zorro derecha) */
+.table-felt-multi.match-2v2 .table-felt-deck-carrier.deck-dock-mano-2 {
+  top: 12px;
+  left: 32%;
+}
+
+.table-felt-multi.match-2v2 .table-felt-deck-carrier.deck-dock-mano-3 {
+  top: 22%;
+  right: 22px;
+}
+
+/* En 1v1 */
+.table-felt-deck-carrier.deck-dock-mano-1v1-player {
+  bottom: 12px;
+  right: 24px;
+  transform: scale(0.9);
+}
+
+.table-felt-deck-carrier.deck-dock-mano-1v1-opponent {
+  top: 12px;
+  left: 24px;
+  transform: scale(0.9);
+}
+
+/* ─── Animación de Naipes Volando desde el Centro al Repartir ─── */
+.dealing-flying-cards-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 65;
+}
+
+.flying-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-top: -24px;
+  margin-left: -16px;
+  width: 32px;
+  height: 48px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.flying-card.fly-to-top {
+  animation: flyToTop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.flying-card.fly-to-bottom {
+  animation: flyToBottom 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.flying-card.fly-to-left {
+  animation: flyToLeft 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.flying-card.fly-to-right {
+  animation: flyToRight 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.flying-card.fly-to-top-left {
+  animation: flyToTopLeft 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.flying-card.fly-to-top-right {
+  animation: flyToTopRight 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes flyToTop {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(0, -170px) scale(0.65) rotate(-10deg); opacity: 0; }
+}
+
+@keyframes flyToBottom {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(0, 190px) scale(1.05) rotate(6deg); opacity: 0; }
+}
+
+@keyframes flyToLeft {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-220px, 0) scale(0.7) rotate(-22deg); opacity: 0; }
+}
+
+@keyframes flyToRight {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(220px, 0) scale(0.7) rotate(22deg); opacity: 0; }
+}
+
+@keyframes flyToTopLeft {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-140px, -150px) scale(0.65) rotate(-14deg); opacity: 0; }
+}
+
+@keyframes flyToTopRight {
+  0% { transform: translate(0, 0) scale(0.9) rotate(0deg); opacity: 1; }
+  100% { transform: translate(140px, -150px) scale(0.65) rotate(14deg); opacity: 0; }
 }
 
 /* ========================================================
