@@ -73,15 +73,11 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
       }
     } else if (attempt === 1) {
       setAttempt(2);
-      // Fallback a SVG si no existiera WebP
-      setCurrentSrc(`./cards/${card.suit}-${card.num}.svg`);
-    } else if (attempt === 2) {
-      setAttempt(3);
-      // Fallback a JPG
+      // Fallback a JPG ultra liviano (4-8 KB, instantáneo sin trabas)
       setCurrentSrc(`./cards/${card.suit}-${card.num}.jpg`);
     } else {
-      // Todas las rutas fallaron: activar renderizado visual garantizado
-      setAttempt(4);
+      // Fallback visual criollo garantizado sin bloquear el hilo
+      setAttempt(3);
     }
   };
 
@@ -110,13 +106,13 @@ export function CardFace({ card, onClick, disabled, small, className = '' }: Car
       title={card.label}
       aria-label={card.label}
     >
-      {attempt < 4 ? (
+      {attempt < 3 ? (
         <img
           src={currentSrc}
           alt={card.label}
           className="card-fournier-img"
           loading="eager"
-          decoding="sync"
+          decoding="async"
           draggable={false}
           onError={handleError}
         />
@@ -165,23 +161,21 @@ export function CardBack({ small, className = '' }: { small?: boolean; className
   const handleError = () => {
     if (attempt === 0) {
       setAttempt(1);
-      setSrc('./cards/back.webp');
-    } else if (attempt === 1) {
-      setAttempt(2);
-      setSrc('./cards/back.svg');
+      setSrc('./cards/back.png');
     } else {
-      setAttempt(3);
+      setAttempt(2);
     }
   };
 
   return (
     <div className={`card-back-argentina ${small ? 'small-back' : ''} ${className}`} aria-hidden="true">
-      {attempt < 3 ? (
+      {attempt < 2 ? (
         <img
           src={src}
           alt="Dorso de naipe"
           className="card-fournier-img card-back-img"
           loading="eager"
+          decoding="async"
           draggable={false}
           onError={handleError}
         />

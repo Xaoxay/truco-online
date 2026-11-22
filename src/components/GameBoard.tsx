@@ -2081,7 +2081,7 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
         </span>
         <div className="fixed-slot-card-box">
           {play ? (
-            <CardFace card={play.card} small disabled className="table-played-card fixed-card-active" />
+            <CardFace card={play.card} small={!isDesktop} disabled className="table-played-card fixed-card-active" />
           ) : (
             <div className={`empty-card-placeholder ${isTurn ? 'turn-active' : ''}`}>
               <span className="placeholder-avatar">{seat.avatar}</span>
@@ -2365,10 +2365,10 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
                     <div key={idx} className={`trick-column ${trick.winner ? `trick-won-${trick.winner}` : ''}`}>
                       <span className="trick-label">{idx + 1}ª</span>
                       <div className={`trick-slot-opp ${trick.winner === 'opponent' ? 'slot-winner' : ''}`}>
-                        {trick.oppCard && <CardFace card={trick.oppCard} small disabled className="table-played-card" />}
+                        {trick.oppCard && <CardFace card={trick.oppCard} small={!isDesktop} disabled className="table-played-card" />}
                       </div>
                       <div className={`trick-slot-me ${trick.winner === 'player' ? 'slot-winner' : ''}`}>
-                        {trick.playerCard && <CardFace card={trick.playerCard} small disabled className="table-played-card" />}
+                        {trick.playerCard && <CardFace card={trick.playerCard} small={!isDesktop} disabled className="table-played-card" />}
                       </div>
                     </div>
                   ))}

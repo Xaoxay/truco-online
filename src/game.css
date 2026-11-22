@@ -3007,55 +3007,63 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   margin-left: -11px;
 }
 
-/* Centro de la mesa con los casilleros fijos bien contenidos y proporcionados */
+/* Centro de la mesa con los casilleros fijos ampliados y proporcionados en PC */
 .desktop-board-layout .table-center-felt-cards {
-  max-width: 440px;
-  min-height: 195px;
+  max-width: 620px;
+  min-height: 275px;
   height: auto;
-  padding: 8px 14px;
-  border-radius: 22px;
+  padding: 12px 22px;
+  border-radius: 26px;
   margin: 0 12px;
 }
 
 .desktop-board-layout .trick-felt-badge {
-  font-size: 11.5px;
-  padding: 2px 10px;
-  border-radius: 12px;
-  margin-bottom: 6px;
+  font-size: 13.5px;
+  padding: 3px 16px;
+  border-radius: 14px;
+  margin-bottom: 8px;
 }
 
 .desktop-board-layout .fixed-trick-grid {
-  gap: 6px;
-}
-
-.desktop-board-layout .fixed-grid-row {
   gap: 12px;
 }
 
+.desktop-board-layout .fixed-grid-row {
+  gap: 18px;
+}
+
 .desktop-board-layout .fixed-trick-slot {
-  gap: 3px;
+  gap: 4px;
 }
 
 .desktop-board-layout .fixed-trick-slot .slot-owner-tag {
-  font-size: 9.5px;
-  padding: 1px 6px;
-  border-radius: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-weight: 800;
 }
 
 .desktop-board-layout .fixed-slot-card-box {
-  width: 46px;
-  height: 66px;
-  border-radius: 7px;
+  width: 70px;
+  height: 105px;
+  border-radius: 9px;
 }
 
+.desktop-board-layout .fixed-slot-card-box .truco-card-argentina,
 .desktop-board-layout .fixed-slot-card-box .truco-card-argentina.small-card {
-  width: 46px !important;
-  height: 66px !important;
-  border-radius: 7px;
+  width: 70px !important;
+  height: 105px !important;
+  border-radius: 9px !important;
+}
+
+.desktop-board-layout .empty-card-placeholder {
+  width: 70px;
+  height: 105px;
+  border-radius: 9px;
 }
 
 .desktop-board-layout .empty-card-placeholder .placeholder-avatar {
-  font-size: 17px;
+  font-size: 28px;
 }
 
 /* Área del jugador inferior en PC */
@@ -3094,26 +3102,66 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   border-radius: 10px;
 }
 
-.desktop-view .felt-center {
-  padding: 10px 0;
-  width: 90%;
-  max-width: 860px;
-  min-height: 380px;
+.desktop-view .felt-center,
+.desktop-board-layout .felt-center,
+.desktop-board-layout .felt-center.wood-table-felt-inset {
+  padding: 16px 24px !important;
+  width: 95% !important;
+  max-width: 900px !important;
+  min-height: 480px !important;
+  max-height: 64vh !important;
 }
 
-.desktop-view .trick-slots-container {
-  max-width: 420px;
-  gap: 16px;
+.desktop-view .table-center-layout,
+.desktop-board-layout .table-center-layout {
+  max-width: 660px !important;
+  width: 100% !important;
+  justify-content: center !important;
+  gap: 18px !important;
 }
 
-.desktop-view .trick-column {
-  height: 200px;
+.desktop-view .trick-slots-container,
+.desktop-board-layout .trick-slots-container {
+  max-width: 560px !important;
+  width: 100% !important;
+  gap: 24px !important;
+}
+
+.desktop-view .trick-column,
+.desktop-board-layout .trick-column {
+  height: 300px !important;
+  min-width: 112px !important;
+  padding: 10px 8px !important;
+  border-radius: 18px !important;
+  background: rgba(0, 0, 0, 0.42) !important;
+  border: 2px solid rgba(244, 196, 48, 0.35) !important;
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.6) !important;
+}
+
+.desktop-view .trick-label,
+.desktop-board-layout .trick-label {
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  color: rgba(244, 196, 48, 0.65) !important;
 }
 
 .desktop-view .trick-slot-opp,
-.desktop-view .trick-slot-me {
-  width: 70px;
-  height: 98px;
+.desktop-view .trick-slot-me,
+.desktop-board-layout .trick-slot-opp,
+.desktop-board-layout .trick-slot-me {
+  width: 92px !important;
+  height: 138px !important;
+}
+
+.desktop-view .trick-slot-opp .truco-card-argentina,
+.desktop-view .trick-slot-me .truco-card-argentina,
+.desktop-board-layout .trick-slot-opp .truco-card-argentina,
+.desktop-board-layout .trick-slot-me .truco-card-argentina,
+.desktop-view .table-played-card,
+.desktop-board-layout .table-played-card {
+  width: 92px !important;
+  height: 138px !important;
+  border-radius: 10px !important;
 }
 
 .desktop-view .player-callouts-bar {
@@ -4516,62 +4564,62 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   height: 34px;
 }
 
-.felt-center.wood-table-felt-inset {
-  width: 100%;
-  max-width: 390px;
-  padding: 8px 10px;
-}
-
-.table-center-layout {
-  width: 100%;
-  max-width: 380px;
-  gap: 8px;
-  min-width: 0;
-}
-
-.trick-slots-container {
-  flex: 1;
-  min-width: 0;
-  width: auto;
-  max-width: 320px;
-}
-
-.trick-column {
-  min-width: 0;
-  height: 132px;
-}
-
-.player-area {
-  padding-bottom: max(4px, env(safe-area-inset-bottom));
-}
-
-.player-callouts-bar {
-  flex-wrap: wrap;
-  justify-content: center;
-  overflow-x: visible;
-  gap: 5px;
-  width: 100%;
-  padding: 2px;
-}
-
-.quick-throw-cards-bar {
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: 100%;
-  gap: 5px;
-}
-
-.senas-drawer {
-  justify-content: safe center;
-  max-width: 100%;
-  scrollbar-width: none;
-}
-
-.senas-drawer::-webkit-scrollbar {
-  display: none;
-}
-
 @media (max-width: 767px) {
+  .felt-center.wood-table-felt-inset {
+    width: 100%;
+    max-width: 390px;
+    padding: 8px 10px;
+  }
+
+  .table-center-layout {
+    width: 100%;
+    max-width: 380px;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .trick-slots-container {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    max-width: 320px;
+  }
+
+  .trick-column {
+    min-width: 0;
+    height: 132px;
+  }
+
+  .player-area {
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .player-callouts-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+    gap: 5px;
+    width: 100%;
+    padding: 2px;
+  }
+
+  .quick-throw-cards-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 100%;
+    gap: 5px;
+  }
+
+  .senas-drawer {
+    justify-content: safe center;
+    max-width: 100%;
+    scrollbar-width: none;
+  }
+
+  .senas-drawer::-webkit-scrollbar {
+    display: none;
+  }
+
   .table-felt-multi {
     flex: 1;
     min-height: 260px;
@@ -4913,3 +4961,198 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     display: none;
   }
 }
+
+/* ========================================================
+   DESKTOP PC 60FPS OPTIMIZATIONS & PROPORTIONATE TABLE CARDS
+   ======================================================== */
+
+/* Aceleración por hardware en elementos animados */
+.turn-flow-ring,
+.table-felt-deck-carrier,
+.flying-deal-card,
+.pro-shuffle-rig,
+.shuffle-pile,
+.cascade-leaf,
+.shuffle-cut-block {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.truco-card-argentina {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Eliminar cálculos pesados de backdrop-filter en pantalla grande de escritorio */
+.desktop-view .game-hud,
+.desktop-board-layout .game-hud,
+.desktop-board-layout .anotador-mini,
+.desktop-board-layout .quick-throw-cards-bar,
+.desktop-board-layout .turn-dialog-bubble,
+.desktop-board-layout .speech-bubble {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(14, 7, 3, 0.94) !important;
+}
+
+/* Sombras optimizadas en PC para rasterizado liviano */
+.desktop-view.app-viewport {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 0 6px #190c06 !important;
+}
+
+.desktop-board-layout .table-felt-multi {
+  box-shadow:
+    inset 0 0 28px rgba(0, 0, 0, 0.85),
+    inset 0 1px 3px rgba(255, 255, 255, 0.18),
+    0 10px 30px rgba(0, 0, 0, 0.75) !important;
+}
+
+.desktop-board-layout .game-table-container.wooden-table {
+  box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.9) !important;
+  padding: 10px 24px 14px 24px !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+/* Cartas de la Mesa en 1v1 en PC: Grandes, Nítidas y Proporcionadas */
+.desktop-view .felt-center.wood-table-felt-inset,
+.desktop-board-layout .felt-center.wood-table-felt-inset {
+  width: 95% !important;
+  max-width: 920px !important;
+  min-height: 480px !important;
+  max-height: 64vh !important;
+  padding: 16px 24px !important;
+  margin: 6px auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.desktop-view .table-center-layout,
+.desktop-board-layout .table-center-layout {
+  width: 100% !important;
+  max-width: 680px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.desktop-view .trick-slots-container,
+.desktop-board-layout .trick-slots-container {
+  width: 100% !important;
+  max-width: 580px !important;
+  gap: 26px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.desktop-view .trick-column,
+.desktop-board-layout .trick-column {
+  flex: 1 !important;
+  height: 300px !important;
+  min-width: 114px !important;
+  max-width: 140px !important;
+  padding: 10px 8px !important;
+  border-radius: 18px !important;
+  background: rgba(0, 0, 0, 0.44) !important;
+  border: 2px solid rgba(244, 196, 48, 0.35) !important;
+  box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.65) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.desktop-view .trick-label,
+.desktop-board-layout .trick-label {
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  color: rgba(244, 196, 48, 0.7) !important;
+  letter-spacing: 0.8px !important;
+}
+
+.desktop-view .trick-slot-opp,
+.desktop-view .trick-slot-me,
+.desktop-board-layout .trick-slot-opp,
+.desktop-board-layout .trick-slot-me {
+  width: 92px !important;
+  height: 138px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.desktop-view .trick-slot-opp .truco-card-argentina,
+.desktop-view .trick-slot-me .truco-card-argentina,
+.desktop-board-layout .trick-slot-opp .truco-card-argentina,
+.desktop-board-layout .trick-slot-me .truco-card-argentina,
+.desktop-view .table-played-card,
+.desktop-board-layout .table-played-card {
+  width: 92px !important;
+  height: 138px !important;
+  border-radius: 10px !important;
+}
+
+/* Cartas de la Mesa en Multi (2v2 y 3v3) en PC: Casilleros Fijos Ampliados */
+.desktop-board-layout .table-center-felt-cards {
+  max-width: 620px !important;
+  min-height: 275px !important;
+  padding: 14px 24px !important;
+  border-radius: 26px !important;
+  background: rgba(8, 28, 16, 0.85) !important;
+  border: 2px solid rgba(244, 196, 48, 0.35) !important;
+  box-shadow: inset 0 2px 20px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.65) !important;
+}
+
+.desktop-board-layout .trick-felt-badge {
+  font-size: 13px !important;
+  padding: 3px 16px !important;
+  border-radius: 14px !important;
+  margin-bottom: 8px !important;
+}
+
+.desktop-board-layout .fixed-trick-grid {
+  gap: 12px !important;
+}
+
+.desktop-board-layout .fixed-grid-row {
+  gap: 18px !important;
+}
+
+.desktop-board-layout .fixed-trick-slot {
+  gap: 4px !important;
+}
+
+.desktop-board-layout .fixed-trick-slot .slot-owner-tag {
+  font-size: 11px !important;
+  padding: 2px 8px !important;
+  border-radius: 5px !important;
+  font-weight: 800 !important;
+}
+
+.desktop-board-layout .fixed-slot-card-box {
+  width: 70px !important;
+  height: 105px !important;
+  border-radius: 9px !important;
+}
+
+.desktop-board-layout .fixed-slot-card-box .truco-card-argentina,
+.desktop-board-layout .fixed-slot-card-box .truco-card-argentina.small-card {
+  width: 70px !important;
+  height: 105px !important;
+  border-radius: 9px !important;
+}
+
+.desktop-board-layout .empty-card-placeholder {
+  width: 70px !important;
+  height: 105px !important;
+  border-radius: 9px !important;
+}
+
+.desktop-board-layout .empty-card-placeholder .placeholder-avatar {
+  font-size: 28px !important;
+}
+
