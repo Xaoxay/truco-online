@@ -184,7 +184,12 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
   const setTricks = (v: PlayedSlot[]) => { tricksRef.current = v; setTricksState(v); };
 
   // Dealing animation state ('idle' | 'shuffling' | 'dealing')
-  const [dealPhase, setDealPhase] = useState<'idle' | 'shuffling' | 'dealing'>('idle');
+  const dealPhaseRef = useRef<'idle' | 'shuffling' | 'dealing'>('idle');
+  const [dealPhase, setDealPhaseState] = useState<'idle' | 'shuffling' | 'dealing'>('idle');
+  const setDealPhase = (v: 'idle' | 'shuffling' | 'dealing') => {
+    dealPhaseRef.current = v;
+    setDealPhaseState(v);
+  };
   const [flyingCards, setFlyingCards] = useState<{ id: number; targetSeat: number }[]>([]);
 
   // Turn & phase
@@ -448,12 +453,14 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     const { p, o } = scoreRef.current;
     if (p >= config.goal) {
       matchOverRef.current = true;
+      try { localStorage.removeItem('truco_active_match_1v1'); } catch {}
       soundMatchWin();
       setMatchWinner('player');
       return true;
     }
     if (o >= config.goal) {
       matchOverRef.current = true;
+      try { localStorage.removeItem('truco_active_match_1v1'); } catch {}
       soundLoseRound();
       setMatchWinner('opponent');
       return true;
@@ -463,9 +470,160 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
   const resetMatch = () => {
     matchOverRef.current = false;
+    try { localStorage.removeItem('truco_active_match_1v1'); } catch {}
     setScorePlayer(0);
     setScoreOpp(0);
     setMatchWinner(null);
+  };
+
+  /** Guarda la partida 1v1 activa en localStorage para permitir recargar la página en celular y destrabar */
+  const persistActiveMatch = () => {
+    if (isMulti || config.mode !== 'bot' || matchOverRef.current) return;
+    try {
+      if (playerHandRef.current.length === 0 && roundEndedRef.current) return;
+      const payload = {
+        config,
+        scorePlayer: scoreRef.current.p,
+        scoreOpp: scoreRef.current.o,
+        playerHand: playerHandRef.current,
+        oppHandCards: oppHandCardsRef.current,
+        initialPlayerHand: initialPlayerHandRef.current,
+        initialOppHand: initialOppHandRef.current,
+        tricks: tricksRef.current,
+        currentTrick: currentTrickRef.current,
+        mano: manoRef.current,
+        turn: turnRef.current,
+        envidoPlayed: envidoPlayedRef.current,
+        trucoLevel: trucoLevelRef.current,
+        trucoCaller: trucoCallerRef.current,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem('truco_active_match_1v1', JSON.stringify(payload));
+    } catch {}
+  };
+
+  // Guardado automático continuo del estado de la partida 1v1
+  useEffect(() => {
+    if (!isMulti && config.mode === 'bot' && !matchOverRef.current) {
+      persistActiveMatch();
+    }
+  }, [
+    scorePlayer,
+    scoreOpp,
+    playerHand,
+    oppHandCards,
+    tricks,
+    currentTrick,
+    mano,
+    turn,
+    trucoLevel,
+    trucoCaller,
+    envidoPlayed,
+    dealPhase
+  ]);
+
+  // Watchdog 1: Auto-destrabe si el bot se estanca en su turno en celular por más de 2.5s
+  useEffect(() => {
+    if (isMulti || config.mode !== 'bot' || matchOverRef.current) return;
+    if (turn !== 'opponent' || pendingCall !== null || dealPhase !== 'idle' || roundEndedRef.current) return;
+
+    const watchdog = setTimeout(() => {
+      if (
+        turnRef.current === 'opponent' &&
+        pendingCallRef.current === null &&
+        dealPhaseRef.current === 'idle' &&
+        !roundEndedRef.current &&
+        !matchOverRef.current
+      ) {
+        console.warn('[Truco Watchdog] Bot estancado en su turno por más de 2.5s. Auto-destrabando...');
+        if (!oppHandCardsRef.current || oppHandCardsRef.current.length === 0) {
+          const playedOppCards = tricksRef.current.map(t => t.oppCard).filter(Boolean) as CardType[];
+          const recovered = initialOppHandRef.current.filter(c => !playedOppCards.some(pc => pc.id === c.id));
+          if (recovered.length > 0) {
+            setOppHandCards(recovered);
+            setOppCardsCount(recovered.length);
+          }
+        }
+        runBotTurn();
+      }
+    }, 2500);
+
+    return () => clearTimeout(watchdog);
+  }, [turn, pendingCall, dealPhase, currentTrick, tricks]);
+
+  // Watchdog 2: Auto-destrabe si la animación de reparto se congela en segundo plano por más de 5s
+  useEffect(() => {
+    if (dealPhase === 'idle') return;
+    const safetyTimer = setTimeout(() => {
+      if (dealPhaseRef.current !== 'idle') {
+        console.warn('[Truco Watchdog] Animación de reparto estancada. Forzando idle...');
+        setDealPhase('idle');
+        setFlyingCards([]);
+        if (playerHandRef.current.length === 0 && initialPlayerHandRef.current.length > 0) {
+          setPlayerHand(initialPlayerHandRef.current);
+        }
+        if (oppHandCardsRef.current.length === 0 && initialOppHandRef.current.length > 0) {
+          setOppHandCards(initialOppHandRef.current);
+          setOppCardsCount(initialOppHandRef.current.length);
+        }
+        setTurn(manoRef.current);
+        if (config.mode === 'bot' && manoRef.current === 'opponent') {
+          later(() => runBotTurn(), 600);
+        }
+      }
+    }, 5000);
+    return () => clearTimeout(safetyTimer);
+  }, [dealPhase]);
+
+  /** Destrabe de emergencia manual en pantalla */
+  const handleEmergencyDestrabe = () => {
+    soundButton();
+    clearRoundTimers();
+    setDealPhase('idle');
+    setPendingCall(null);
+    setEnvidoModal(null);
+    setPlayerSpeech(null);
+    setOppSpeech(null);
+    setCenterBanner(null);
+    roundEndedRef.current = false;
+
+    if (isMulti) {
+      showToast('⚡ Mesa destrabada');
+      setCurrentTurnSeat(mySeatIdx);
+      return;
+    }
+
+    // Asegurar cartas si quedaron vacías
+    if (playerHandRef.current.length === 0 && initialPlayerHandRef.current.length > 0) {
+      setPlayerHand(initialPlayerHandRef.current);
+    }
+    if (oppHandCardsRef.current.length === 0 && initialOppHandRef.current.length > 0) {
+      const playedOppCards = tricksRef.current.map(t => t.oppCard).filter(Boolean) as CardType[];
+      const remainingOpp = initialOppHandRef.current.filter(c => !playedOppCards.some(pc => pc.id === c.id));
+      setOppHandCards(remainingOpp.length > 0 ? remainingOpp : initialOppHandRef.current);
+      setOppCardsCount(remainingOpp.length > 0 ? remainingOpp.length : 3);
+    }
+
+    const trickIdx = currentTrickRef.current;
+    if (trickIdx > 2 || playerHandRef.current.length === 0) {
+      showToast('⚡ Destrabado: repartiendo nueva mano...');
+      startNewRound(otherPlayer(manoRef.current));
+      return;
+    }
+
+    const curTrick = tricksRef.current[trickIdx];
+    if (curTrick && curTrick.playerCard && curTrick.oppCard) {
+      showToast('⚡ Destrabado: resolviendo baza...');
+      resolveTrick(tricksRef.current, trickIdx);
+    } else if (curTrick && curTrick.playerCard && !curTrick.oppCard) {
+      showToast('⚡ Destrabado: esperando jugada del rival...');
+      setTurn('opponent');
+      later(() => runBotTurn(), 200);
+    } else {
+      showToast('⚡ Destrabado: es tu turno para tirar');
+      setTurn('player');
+    }
+    persistActiveMatch();
   };
 
   const scheduleNextRound = (delay: number) => {
@@ -980,6 +1138,66 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
       network.sendMessage({ type: 'GUEST_READY' });
       return;
     }
+
+    // Si estamos en 1v1 y el usuario recargó la página en el celular, restaurar y destrabar la partida
+    if (!isMulti && config.mode === 'bot') {
+      try {
+        const savedRaw = localStorage.getItem('truco_active_match_1v1');
+        if (savedRaw) {
+          const saved = JSON.parse(savedRaw);
+          if (
+            saved &&
+            saved.playerHand &&
+            saved.playerHand.length > 0 &&
+            Date.now() - (saved.timestamp || 0) < 4 * 60 * 60 * 1000
+          ) {
+            setScorePlayer(saved.scorePlayer || 0);
+            setScoreOpp(saved.scoreOpp || 0);
+            setPlayerHand(saved.playerHand);
+            initialPlayerHandRef.current = saved.initialPlayerHand || saved.playerHand;
+            initialOppHandRef.current = saved.initialOppHand || saved.oppHandCards || [];
+            setInitialPlayerHand(initialPlayerHandRef.current);
+            setInitialOppHand(initialOppHandRef.current);
+
+            // Recuperación segura de cartas del bot para evitar mano vacía
+            const playedOppCards = ((saved.tricks || []) as PlayedSlot[]).map(t => t.oppCard).filter(Boolean) as CardType[];
+            const safeOppHand = (saved.oppHandCards && saved.oppHandCards.length > 0)
+              ? saved.oppHandCards
+              : initialOppHandRef.current.filter((c: CardType) => !playedOppCards.some(pc => pc.id === c.id));
+            setOppHandCards(safeOppHand);
+            setOppCardsCount(safeOppHand.length);
+
+            setTricks(saved.tricks || emptyTricks());
+            setCurrentTrick(saved.currentTrick || 0);
+            setMano(saved.mano || 'player');
+            setTrucoLevel(saved.trucoLevel || 'none');
+            setTrucoCaller(saved.trucoCaller || null);
+            setEnvidoPlayed(saved.envidoPlayed || false);
+            setDealPhase('idle');
+            setPendingCall(null);
+            roundEndedRef.current = false;
+
+            const trickIdx = saved.currentTrick || 0;
+            const curTrick = (saved.tricks && saved.tricks[trickIdx]) || { playerCard: null, oppCard: null };
+            if (!curTrick.playerCard) {
+              setTurn(saved.turn || 'player');
+            } else if (!curTrick.oppCard) {
+              setTurn('opponent');
+              later(() => runBotTurn(), 500);
+            } else {
+              setTurn('player');
+            }
+
+            soundWinRound();
+            showToast('⚡ Partida reanudada y destrabada con éxito');
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Error al restaurar partida', e);
+      }
+    }
+
     startNewRound('player');
   }, [initialRoundData]);
 
@@ -1473,8 +1691,19 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
     if (trickIdx > 2) return;
     if (tricksRef.current[trickIdx].oppCard !== null) return;
 
-    const botHand = oppHandCardsRef.current;
-    if (botHand.length === 0) return;
+    let botHand = oppHandCardsRef.current;
+    if (!botHand || botHand.length === 0) {
+      // Auto-recuperación si la mano del bot quedó vacía inesperadamente
+      const playedOppCards = tricksRef.current.map(t => t.oppCard).filter(Boolean) as CardType[];
+      const recovered = initialOppHandRef.current.filter(c => !playedOppCards.some(pc => pc.id === c.id));
+      if (recovered.length > 0) {
+        botHand = recovered;
+        setOppHandCards(recovered);
+        setOppCardsCount(recovered.length);
+      } else {
+        return;
+      }
+    }
     const curPlayerHand = playerHandRef.current;
 
     const roundView = (): RoundState => ({
@@ -1491,44 +1720,58 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
 
     const { p: scoreP, o: scoreO } = scoreRef.current;
 
-    // 1. Should bot call Envido?
-    // En el Truco Argentino, si la Mano tiró carta sin cantar Envido, el rival (pie/bot) puede cantar Envido antes de tirar su carta
-    if (!envidoPlayedRef.current && trickIdx === 0 && botHand.length === 3 &&
-        botShouldCallEnvido(botHand, roundView(), scoreO, scoreP)) {
-      soundCall();
-      setPendingCall({ type: 'envido', caller: 'opponent' });
-      triggerOppSpeech(botPhrase('envido'), 'envido');
-      return;
-    }
-
-    // 2. Should bot call Truco?
-    if (canCallTruco(roundView(), 'opponent') && botShouldCallTruco(botHand, roundView(), scoreO, scoreP)) {
-      const nextLevel = nextTrucoLevel(trucoLevelRef.current);
-      if (nextLevel && nextLevel !== 'none') {
-        soundTruco();
-        setPendingCall({ type: nextLevel, caller: 'opponent' });
-        triggerOppSpeech(botPhrase(nextLevel as any), 'canto');
+    try {
+      // 1. Should bot call Envido?
+      // En el Truco Argentino, si la Mano tiró carta sin cantar Envido, el rival (pie/bot) puede cantar Envido antes de tirar su carta
+      if (!envidoPlayedRef.current && trickIdx === 0 && botHand.length === 3 &&
+          botShouldCallEnvido(botHand, roundView(), scoreO, scoreP)) {
+        soundCall();
+        setPendingCall({ type: 'envido', caller: 'opponent' });
+        triggerOppSpeech(botPhrase('envido'), 'envido');
         return;
       }
+
+      // 2. Should bot call Truco?
+      if (canCallTruco(roundView(), 'opponent') && botShouldCallTruco(botHand, roundView(), scoreO, scoreP)) {
+        const nextLevel = nextTrucoLevel(trucoLevelRef.current);
+        if (nextLevel && nextLevel !== 'none') {
+          soundTruco();
+          setPendingCall({ type: nextLevel, caller: 'opponent' });
+          triggerOppSpeech(botPhrase(nextLevel as any), 'canto');
+          return;
+        }
+      }
+
+      // 3. Play card
+      const botTricks = tricksRef.current.map(t => ({
+        cards: [
+          ...(t.playerCard ? [{ player: 'player' as PlayerId, card: t.playerCard }] : []),
+          ...(t.oppCard ? [{ player: 'opponent' as PlayerId, card: t.oppCard }] : []),
+        ],
+        winner: t.winner,
+      }));
+      let cardIdx = botChooseCard(botHand, { ...roundView(), tricks: botTricks });
+      if (cardIdx === undefined || cardIdx < 0 || cardIdx >= botHand.length) {
+        cardIdx = 0;
+      }
+
+      const botCard = botHand[cardIdx] || botHand[0];
+      if (!botCard) return;
+      const newOppHand = botHand.filter((_, i) => i !== cardIdx);
+      setOppHandCards(newOppHand);
+      setOppCardsCount(newOppHand.length);
+      soundCardPlay();
+      applyOpponentCard(botCard, trickIdx);
+    } catch (err) {
+      console.error('[Truco Error in runBotTurn]', err);
+      if (botHand.length > 0) {
+        const fallbackCard = botHand[0];
+        const newOppHand = botHand.slice(1);
+        setOppHandCards(newOppHand);
+        setOppCardsCount(newOppHand.length);
+        applyOpponentCard(fallbackCard, trickIdx);
+      }
     }
-
-    // 3. Play card
-    const botTricks = tricksRef.current.map(t => ({
-      cards: [
-        ...(t.playerCard ? [{ player: 'player' as PlayerId, card: t.playerCard }] : []),
-        ...(t.oppCard ? [{ player: 'opponent' as PlayerId, card: t.oppCard }] : []),
-      ],
-      winner: t.winner,
-    }));
-    const cardIdx = botChooseCard(botHand, { ...roundView(), tricks: botTricks });
-
-    const botCard = botHand[cardIdx];
-    if (!botCard) return;
-    const newOppHand = botHand.filter((_, i) => i !== cardIdx);
-    setOppHandCards(newOppHand);
-    setOppCardsCount(newOppHand.length);
-    soundCardPlay();
-    applyOpponentCard(botCard, trickIdx);
   };
 
   /** Si el bot tiene que seguir jugando después de resolver un canto, lo reanuda. */
@@ -2179,6 +2422,14 @@ export default function GameBoard({ config, network, onExit, isDesktop = false, 
           </div>
 
           <div className="hud-actions-right">
+            <button
+              type="button"
+              className="btn-hud-destrabar"
+              onClick={handleEmergencyDestrabe}
+              title="Destrabar o reanudar partida si se congela"
+            >
+              ⚡ Destrabar
+            </button>
             {onToggleLayout && (
               <button
                 className="btn-layout-toggle"

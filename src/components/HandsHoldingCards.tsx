@@ -19,10 +19,10 @@ export function PlayerHandsHoldingCards({ cards, onPlayCard, canPlay, isDesktop 
       e.preventDefault();
       e.stopPropagation();
     }
-    const now = Date.now();
-    if (now - lastPlayTime.current < 400) return;
-    lastPlayTime.current = now;
     if (!canPlay) return;
+    const now = Date.now();
+    if (now - lastPlayTime.current < 200) return;
+    lastPlayTime.current = now;
     onPlayCard(idx);
   };
 

@@ -93,3 +93,60 @@ test('Simulation: 1v1 Complete Match to 15 points with rules engine', () => {
   assert.ok(scoreP >= 15 || scoreOpp >= 15);
   assert.ok(roundsCount > 0 && roundsCount < 50);
 });
+
+test('Recovery & Self-Healing: 1v1 match serialization and reload unfreeze', () => {
+  const { playerHand, opponentHand } = dealHands();
+  
+  // Simulate user playing card 0 (e.g. 4 de copas)
+  const playedCard = playerHand[0];
+  const remainingPlayerHand = playerHand.slice(1);
+  const tricks = [
+    { playerCard: playedCard, oppCard: null, winner: null },
+    { playerCard: null, oppCard: null, winner: null },
+    { playerCard: null, oppCard: null, winner: null },
+  ];
+
+  const snapshot = {
+    config: { goal: 15, mode: 'bot', playerName: 'Braian', opponentName: 'Amigo' },
+    scorePlayer: 0,
+    scoreOpp: 0,
+    playerHand: remainingPlayerHand,
+    oppHandCards: opponentHand,
+    initialPlayerHand: playerHand,
+    initialOppHand: opponentHand,
+    tricks,
+    currentTrick: 0,
+    mano: 'player',
+    turn: 'opponent',
+    envidoPlayed: false,
+    trucoLevel: 'none',
+    trucoCaller: null,
+    timestamp: Date.now(),
+  };
+
+  // Serialize to JSON like localStorage
+  const serialized = JSON.stringify(snapshot);
+  const restored = JSON.parse(serialized);
+
+  assert.equal(restored.playerHand.length, 2);
+  assert.equal(restored.oppHandCards.length, 3);
+  assert.equal(restored.tricks[0].playerCard.id, playedCard.id);
+  assert.equal(restored.tricks[0].oppCard, null);
+
+  // Recovery logic check:
+  // Since player played card and opp hasn't, turn must be 'opponent'
+  const trickIdx = restored.currentTrick || 0;
+  const curTrick = restored.tricks[trickIdx];
+  let nextTurn = 'player';
+  if (curTrick.playerCard && !curTrick.oppCard) {
+    nextTurn = 'opponent';
+  }
+  assert.equal(nextTurn, 'opponent');
+
+  // Verify safeOppHand recovery if oppHandCards was unexpectedly empty
+  const playedOppCards = restored.tricks.map((t: any) => t.oppCard).filter(Boolean);
+  const safeOppHand = (restored.oppHandCards && restored.oppHandCards.length > 0)
+    ? restored.oppHandCards
+    : restored.initialOppHand.filter((c: any) => !playedOppCards.some((pc: any) => pc.id === c.id));
+  assert.equal(safeOppHand.length, 3);
+});

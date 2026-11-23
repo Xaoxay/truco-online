@@ -62,6 +62,22 @@ function MainApp() {
 
   const networkRef = useRef<TrucoNetwork | null>(null);
 
+  // Check for saved active match on page reload / refresh (auto-destrabe y recuperación)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('truco_active_match_1v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.config && Date.now() - (parsed.timestamp || 0) < 4 * 60 * 60 * 1000) {
+          setConfig(parsed.config);
+          setView('game');
+        }
+      }
+    } catch {
+      // Ignorar error de parsing
+    }
+  }, []);
+
   // Check URL query parameters for ?room=CODE
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -321,6 +337,7 @@ function MainApp() {
           onToggleLayout={canUseDesktop ? toggleDesktop : undefined}
           initialRoundData={pendingRoundData}
           onExit={() => {
+            try { localStorage.removeItem('truco_active_match_1v1'); } catch {}
             networkRef.current?.destroy();
             networkRef.current = null;
             setPendingRoundData(null);

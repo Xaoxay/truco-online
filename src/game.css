@@ -2633,6 +2633,33 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   border-radius: 6px;
 }
 
+.btn-hud-destrabar {
+  background: rgba(245, 158, 11, 0.22);
+  border: 1px solid rgba(245, 158, 11, 0.7);
+  color: #fde68a;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.btn-hud-destrabar:hover,
+.btn-hud-destrabar:active {
+  background: rgba(245, 158, 11, 0.4);
+  border-color: #f59e0b;
+  color: #fff;
+  transform: scale(0.96);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+}
+
 .btn-layout-toggle {
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.2);
